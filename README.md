@@ -1,6 +1,6 @@
 # fulanghua_navigation
 
-This package provides ros navigation packages.
+This repo provides ros navigation packages.
 
 ## License
 
