@@ -1,6 +1,6 @@
 # fulanghua_navigation
 
-fulanghua_navigation provides mobile navigation system on ros.
+fulanghua_navigation provides mobile packages system on ros.
 
 ## License
 
