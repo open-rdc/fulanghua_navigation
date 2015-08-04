@@ -2,7 +2,7 @@
 
 fulanghua_navigation provides mobile packages system on ros.
 
-![](https://raw.githubusercontent.com/DaikiMaekawa/fulanghua_navigation/add-icon/docs/fulanghua_icon.jpg)
+![](https://raw.githubusercontent.com/DaikiMaekawa/fulanghua_navigation/master/docs/fulanghua_icon.jpg)
 
 ## License
 
