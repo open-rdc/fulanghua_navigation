@@ -1,6 +1,6 @@
 # fulanghua_navigation
 
-fulanghua_navigation provides mobile packages system on ros.
+fulanghua_navigation provides mobile robot navigation packages on ros.
 
 ![](https://raw.githubusercontent.com/DaikiMaekawa/fulanghua_navigation/master/docs/fulanghua_icon.jpg)
 
