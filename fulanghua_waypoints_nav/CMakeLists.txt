@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(waypoints_navigation)
+project(fulanghua_waypoints_nav)
 
 find_package(catkin REQUIRED COMPONENTS
   move_base_msgs
