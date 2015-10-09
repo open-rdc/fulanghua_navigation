@@ -28,52 +28,198 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <Eigen/LU>
+#include <Eigen/Dense>
+
 namespace fulanghua {
 
-PoseEstimator::PoseEstimator(ros::NodeHandle &node) : 
-    update_rate_(100)
-{
+double normalize_rad(double th) {
+    while(th > M_PI) th -= 2 * M_PI;
+    while(th < -M_PI) th += 2 * M_PI;
 
+    return th;
 }
 
-ros::Time PoseEstimator::update(const ros::Time &old_filter_stamp) {
-    ros::Time now = ros::Time::now();
-    ros::Time filter_stamp = now;
+PoseEstimator::PoseEstimator(ros::NodeHandle &node) : 
+    update_rate_(100),
+    output_frame_("combined_odom"),
+    base_frame_("map"),
+    x_est_(Eigen::Vector4d::Zero()),
+    cov_est_(Eigen::Matrix4d::Identity()),
+    pose_pub_(node.advertise<geometry_msgs::PoseWithCovarianceStamped>("self_pose", 10)),
+    imu_sub_(node.subscribe("imu", 10, &PoseEstimator::imu_callback, this)),
+    odom_sub_(node.subscribe("odom", 10, &PoseEstimator::odom_callback, this)),
+    gpos_meas_sub_(node.subscribe("meas_gpos", 10, &PoseEstimator::gpos_meas_callback, this))
+{
+    ros::NodeHandle nh_private("~");
 
-    double dt = (now - old_filter_stamp).toSec();
-    if(fabs(dt) < 0.0001) {
-        return ros::Time(0);
-    }
+    nh_private.param("output_frame", output_frame_, output_frame_);
+    nh_private.param("base_frame", base_frame_, base_frame_);
+    
+    double motion_x_err, motion_y_err, motion_ang_err, motion_vel_err;
+    double observation_x_err, observation_x_err, observation_ang_err, observation_vel_err;
+    
+    nh_private.param("motion_x_err", motion_x_err, 0.1);
+    nh_private.param("motion_y_err", motion_y_err, 0.1);
+    nh_private.param("motion_ang_err", motion_ang_err, 0.1);
+    nh_private.param("motion_vel_err", motion_vel_err, 0.05);
+    
+    nh_private.param("observation_x_err", observation_x_err, 1.5);
+    nh_private.param("observation_y_err", observation_y_err, 1.5);
+    nh_private.param("observation_ang_err", observation_ang_err, 0.1);
+    nh_private.param("observation_vel_err", observation_vel_err, 0.05);
 
-    filter_stamp = std::min(filter_stamp, _odom_stamp);
-    filter_stamp = std::min(filter_stamp, _ref_gl_stamp);
-    filter_stamp
+    motion_cov_ << motion_x_err * motion_x_err, 0.0, 0.0, 0.0,
+                   0.0, motion_y_err * motion_y_err, 0.0, 0.0,
+                   0.0, 0.0, motion_ang_err * motion_ang_err, 0.0,
+                   0.0, 0.0, 0.0, motion_vel_err * motion_vel_err;
+
+    observation_cov << observation_x_err * observation_x_err, 0.0, 0.0, 0.0,
+                       0.0, observation_y_err * observation_y_err, 0.0, 0.0,
+                       0.0, 0.0, observation_ang_err * observation_ang_err, 0.0,
+                       0.0, 0.0, 0.0, observation_vel_err * observation_vel_err;
 }
 
 void PoseEstimator::spin() {
-    bool meas_initialized = false;
+    ros::Rate rate(update_rate_);
     ros::Time old_filter_stamp(0);
-    ros::Rate r(update_rate_);
 
     while(ros::ok()) {
         ros::spinOnce();
+        rate.sleep();
         
-        if(meas_initialized) {
-            ros::Time est_stamp = update(old_filter_stamp);
+        if(old_filter_stamp != ros::Time(0) && gpos_meas_stamp_ != ros::Time(0) && 
+            imu_stamp_ != ros::Time(0) && odom_stamp_ != ros::Time(0)) {
+            
+            ros::Time now = ros::Time::now();
+            ros::Time filter_stamp = now;
 
-            if(est_stamp != ros::Time(0)) {
-                old_filter_stamp = est_stamp;
+            filter_stamp = std::min(filter_stamp, _odom_stamp);
+            filter_stamp = std::min(filter_stamp, _gpos_meas_stamp);
+            filter_stamp = std::min(filter_stamp, _imu_stamp);
+
+            double dt = (now - old_filter_stamp).toSec();
+            if(fabs(dt) < 0.0001) continue;
+            
+            if((ros::Time::now() - filter_stamp).toSec() > 1.0) {
+                ROS_WARN("receive data are too old!");
+                continue;
             }
 
-            geometry_msgs::PoseWithCovarianceStamped est_pose;
-            est_pose.header.stamp = est_stamp;
-            est_pose.header.frame_id = world_frame_;
-            
-        }
+            Eigen::Vector2d est_pos;
+            double est_yaw;
+            Eigen::Matrix3d est_cov;
+            if(!estimate(est_pos, est_yaw, est_cov, filter_stamp, dt)) continue;
 
-        r.sleep();
-        
+            geometry_msgs::PoseWithCovarianceStamped est_pose;
+            est_pose.header.stamp = filter_stamp;
+            est_pose.header.frame_id = base_frame_;
+            est_pose.pose.pose.position.x = est_pos.x();
+            est_pose.pose.pose.position.y = est_pos.y();
+            est_pose.pose.pose.orientation = tf::createQuaternionMsgFromYaw(est_yaw);
+
+            est_pose.pose.covariance = boost::assign::list_of
+                (est_cov(0)) (0) (0) (0) (0) (0)
+                (0) (est_cov(1)) (0) (0) (0) (0)
+                (0) (0) (999999.9) (0) (0) (0)
+                (0) (0) (0) (999999.9) (0) (0)
+                (0) (0) (0) (0) (0) (est_cov(2));
+
+            pose_pub.publish(est_pose);
+
+            tf::Transform tran;
+            tran.setOrigin(tf::Vector3(
+                est_pose.pose.pose.position.x,
+                est_pose.pose.pose.position.y,
+                0)
+            );
+            
+            geometry_msgs::TransformStamped tran;
+            tran.header.stamp = filter_stamp;
+            tran.header.frame_id = base_link_;
+            tran.child_frame_id = output_frame_;
+            tran.transform.translation.x = est_pose.pose.pose.position.x;
+            tran.transform.translation.y = est_pose.pose.pose.position.y;
+            tran.transform.translation.z = 0.0;
+            tran.transform.rotation = est_pose.pose.pose.orientation;
+
+            tf_broadcaster.sendTransform(tran);
+
+            old_filter_stamp = now;
+        } else {
+            old_filter_stamp = ros::Time::now();
+            
+            if(transformer_.canTransform(base_link_, "odom", old_filter_stamp)) {
+                transformer_.lookupTransform("odom", base_link_, old_filter_stamp, old_odom_meas_);
+            }
+        }
     }
+}
+
+bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d &cov_xy_th, const ros::Time &filter_stamp, double dt) {
+
+    
+    tf::StampedTransform odom_meas;
+    if(!transformer_.canTransform(base_frame_, "odom", filter_stamp)) {
+        ROS_WARN("Failed transform of odom data");
+        return false;
+    } else {
+        transformer_.lookupTransform("odom", base_frame_, filter_stamp, odom_meas);
+    }
+
+    tf::StampedTransform gpos_meas;
+    if(!transformer_.canTransform(base_frame_, "gpos_meas", filter_stamp)) {
+        ROS_WARN("Failed transform of gpos_meas data");
+        return false;
+    } else {
+        transformer_.lookupTransform("gpos_meas", base_frame_, filter_stamp, gpos_meas);
+    }
+    
+    tf::StampedTransform imu_meas;
+    if(!transformer_.canTransform(base_frame_, "imu", filter_stamp)) {
+        ROS_WARN("Failed transform of imu data");
+        return false;
+    } else {
+        transformer_.lookupTransform("imu", base_frame_, filter_stamp, imu_meas);
+    }
+    
+    double odom_linear_x = (odom_meas.getOrigin().x() - old_odom_meas_.getOrigin().x()) / dt;
+    
+    double odom_angular_z;
+    double tmp_r, tmp_p, odom_yaw;
+    odom_meas.getBasis().getEulerYPR(odom_yaw, tmp_p, tmp_r);
+    double tmp_old_r, tmp_old_p, old_odom_yaw;
+    old_odom_meas.getBasis().getEulerYPR(old_odom_yaw, tmp_old_p, tmp_old_r);
+    odom_angular_z = (odom_yaw - old_odom_yaw) / dt;
+
+    ///< @todo use tf_listener for imu frame
+    Eigen::Vector3d imu_rpy;
+    imu_meas.getBasis().getEulerYPR(imu_rpy.z(), imu_rpy.y(). imu_rpy.x());
+
+    //predict
+    Eigen::Vector2d u(odom_linear_x, odom_angular_z);
+    Eigen::Matrix4d x_pred = motion_model(x_est_, u, dt);
+    Eigen::Matrix4d JF = jacob_motion_model(x_pred, u, dt);
+    Eigen::Matrix4d cov_pred = JF * cov_est_ * JF.transpose() + motion_cov_;
+
+    //update
+    Eigen::Vector4d x = (gpos_meas.getOrigin().x(), gpos_meas.getOrigin().y(), imu_rpy.z(), odom_linear_x);
+    Eigen::Vector4d z = observation_model(x);
+    Eigen::Matrix4d H = jacob_observation_model(x_pred);
+    Eigen::Vector4d y = normalize_rad(z - observation_model(x_pred));
+    Eigen::Matrix4d S = H * cov_pred * H.transpose() + observation_cov_;
+    Eigen::Matrix4d K = cov_pred * H.transpose() * S.inverse();
+    
+    //storage estimation results
+    x_est_ = x_pred + K * y;
+    cov_est_ = (Eigen::Matrix4d::Identity() - K * H) * cov_pred;
+    
+    pos.x() = x_est_(0);
+    pos.y() = x_est_(1);
+    yaw = x_est_(2);
+    cov_xy_th = cov_est_.block(0, 0, 3, 3);
+    
+    return true;
 }
 
 } //namespace fulanghua
@@ -87,4 +233,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
