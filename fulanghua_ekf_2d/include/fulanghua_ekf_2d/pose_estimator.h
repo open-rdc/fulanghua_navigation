@@ -31,6 +31,15 @@
 #ifndef FULANGHUA_EKF_2D__POSE_ESTIMATOR_H
 #define FULANGHUA_EKF_2D__POSE_ESTIMATOR_H
 
+#include <ros/ros.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <sensor_msgs/Imu.h>
+#include <nav_msgs/Odometry.h>
+#include <tf/tf.h>
+
+#include <Eigen/Geometry>
+#include <Eigen/Core>
+
 namespace fulanghua {
 
 class PoseEstimator
