@@ -36,9 +36,12 @@
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 
-#include <Eigen/Geometry>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
+
+#include <string>
 
 namespace fulanghua {
 
@@ -52,7 +55,19 @@ public:
     bool estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d &cov_xy_th, const ros::Time &filter_stamp, double dt);
 
 private:
-    Eigen::Vector4d jacob_motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
+    void imu_callback(const sensor_msgs::Imu &msg) {
+
+    }
+
+    void odom_callback(const nav_msgs::Odometry &msg) {
+
+    }
+
+    void gpos_meas_callback(const nav_msgs::Odometry &msg) {
+
+    }
+
+    Eigen::Matrix4d jacob_motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
         Eigen::Matrix4d J;
         J << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0,
@@ -63,17 +78,7 @@ private:
 
     }
 
-    Eigen::Vector4d jacob_observation_model(const Eigen::Vector4d &x) {
-        Eigen::Matrix4d J;
-        J << 1.0, 0.0, 0.0, 0.0,
-             0.0, 1.0, 0.0, 0.0,
-             0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0;
-
-         return J;
-    }
-    
-    Eigen::Matrix4d motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
+    Eigen::Vector4d motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
         Eigen::Matrix4d F;
         F << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0,
@@ -89,7 +94,17 @@ private:
         return F*x + B*u;
     }
 
-    Eigen::Matrix4d observation_model(const Eigen::Vector4d &x) {
+    Eigen::Matrix4d jacob_observation_model(const Eigen::Vector4d &x) {
+        Eigen::Matrix4d J;
+        J << 1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0;
+
+         return J;
+    }
+
+    Eigen::Vector4d observation_model(const Eigen::Vector4d &x) {
         Eigen::Matrix4d H;
         H << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0,
@@ -108,7 +123,17 @@ private:
     Eigen::Matrix4d observation_cov_;
 
     tf::StampedTransform old_odom_meas_;
-    
+    tf::Transformer transformer_;
+    tf::TransformBroadcaster tf_broadcaster_;
+
+    double update_rate_;
+    std::string output_frame_;
+    std::string base_frame_;
+
+    ros::Time odom_stamp_;
+    ros::Time gpos_meas_stamp_;
+    ros::Time imu_stamp_;
+
 };
 
 } //namespace fulanghua

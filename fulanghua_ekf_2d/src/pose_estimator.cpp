@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "fulanghua_ekf_2d/pose_estimator.h"
+#include <fulanghua_ekf_2d/pose_estimator.h>
 
 #include <boost/assign.hpp>
 
@@ -61,7 +61,7 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
     nh_private.param("base_frame", base_frame_, base_frame_);
     
     double motion_x_err, motion_y_err, motion_ang_err, motion_vel_err;
-    double observation_x_err, observation_x_err, observation_ang_err, observation_vel_err;
+    double observation_x_err, observation_y_err, observation_ang_err, observation_vel_err;
     
     nh_private.param("motion_x_err", motion_x_err, 0.1);
     nh_private.param("motion_y_err", motion_y_err, 0.1);
@@ -78,7 +78,7 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
                    0.0, 0.0, motion_ang_err * motion_ang_err, 0.0,
                    0.0, 0.0, 0.0, motion_vel_err * motion_vel_err;
 
-    observation_cov << observation_x_err * observation_x_err, 0.0, 0.0, 0.0,
+    observation_cov_ << observation_x_err * observation_x_err, 0.0, 0.0, 0.0,
                        0.0, observation_y_err * observation_y_err, 0.0, 0.0,
                        0.0, 0.0, observation_ang_err * observation_ang_err, 0.0,
                        0.0, 0.0, 0.0, observation_vel_err * observation_vel_err;
@@ -98,9 +98,9 @@ void PoseEstimator::spin() {
             ros::Time now = ros::Time::now();
             ros::Time filter_stamp = now;
 
-            filter_stamp = std::min(filter_stamp, _odom_stamp);
-            filter_stamp = std::min(filter_stamp, _gpos_meas_stamp);
-            filter_stamp = std::min(filter_stamp, _imu_stamp);
+            filter_stamp = std::min(filter_stamp, odom_stamp_);
+            filter_stamp = std::min(filter_stamp, gpos_meas_stamp_);
+            filter_stamp = std::min(filter_stamp, imu_stamp_);
 
             double dt = (now - old_filter_stamp).toSec();
             if(fabs(dt) < 0.0001) continue;
@@ -129,32 +129,25 @@ void PoseEstimator::spin() {
                 (0) (0) (0) (999999.9) (0) (0)
                 (0) (0) (0) (0) (0) (est_cov(2));
 
-            pose_pub.publish(est_pose);
-
-            tf::Transform tran;
-            tran.setOrigin(tf::Vector3(
-                est_pose.pose.pose.position.x,
-                est_pose.pose.pose.position.y,
-                0)
-            );
+            pose_pub_.publish(est_pose);
             
             geometry_msgs::TransformStamped tran;
             tran.header.stamp = filter_stamp;
-            tran.header.frame_id = base_link_;
+            tran.header.frame_id = base_frame_;
             tran.child_frame_id = output_frame_;
             tran.transform.translation.x = est_pose.pose.pose.position.x;
             tran.transform.translation.y = est_pose.pose.pose.position.y;
             tran.transform.translation.z = 0.0;
             tran.transform.rotation = est_pose.pose.pose.orientation;
 
-            tf_broadcaster.sendTransform(tran);
+            tf_broadcaster_.sendTransform(tran);
 
             old_filter_stamp = now;
         } else {
             old_filter_stamp = ros::Time::now();
             
-            if(transformer_.canTransform(base_link_, "odom", old_filter_stamp)) {
-                transformer_.lookupTransform("odom", base_link_, old_filter_stamp, old_odom_meas_);
+            if(transformer_.canTransform(base_frame_, "odom", old_filter_stamp)) {
+                transformer_.lookupTransform("odom", base_frame_, old_filter_stamp, old_odom_meas_);
             }
         }
     }
@@ -193,24 +186,25 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     double tmp_r, tmp_p, odom_yaw;
     odom_meas.getBasis().getEulerYPR(odom_yaw, tmp_p, tmp_r);
     double tmp_old_r, tmp_old_p, old_odom_yaw;
-    old_odom_meas.getBasis().getEulerYPR(old_odom_yaw, tmp_old_p, tmp_old_r);
+    old_odom_meas_.getBasis().getEulerYPR(old_odom_yaw, tmp_old_p, tmp_old_r);
     odom_angular_z = (odom_yaw - old_odom_yaw) / dt;
 
     ///< @todo use tf_listener for imu frame
     Eigen::Vector3d imu_rpy;
-    imu_meas.getBasis().getEulerYPR(imu_rpy.z(), imu_rpy.y(). imu_rpy.x());
+    //imu_meas.getBasis().getEulerYPR(imu_rpy.z(), imu_rpy.y(). imu_rpy.x());
 
     //predict
     Eigen::Vector2d u(odom_linear_x, odom_angular_z);
-    Eigen::Matrix4d x_pred = motion_model(x_est_, u, dt);
+    Eigen::Vector4d x_pred = motion_model(x_est_, u, dt);
     Eigen::Matrix4d JF = jacob_motion_model(x_pred, u, dt);
     Eigen::Matrix4d cov_pred = JF * cov_est_ * JF.transpose() + motion_cov_;
 
     //update
-    Eigen::Vector4d x = (gpos_meas.getOrigin().x(), gpos_meas.getOrigin().y(), imu_rpy.z(), odom_linear_x);
+    Eigen::Vector4d x(gpos_meas.getOrigin().x(), gpos_meas.getOrigin().y(), imu_rpy.z(), odom_linear_x);
     Eigen::Vector4d z = observation_model(x);
     Eigen::Matrix4d H = jacob_observation_model(x_pred);
-    Eigen::Vector4d y = normalize_rad(z - observation_model(x_pred));
+    Eigen::Vector4d y = z - observation_model(x_pred);
+    y(2) = normalize_rad(y(2));
     Eigen::Matrix4d S = H * cov_pred * H.transpose() + observation_cov_;
     Eigen::Matrix4d K = cov_pred * H.transpose() * S.inverse();
     
