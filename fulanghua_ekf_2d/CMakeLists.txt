@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf
   visualization_msgs
+  ecl_eigen
 )
 
 ## System dependencies are found with CMake's conventions
@@ -117,6 +118,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -131,16 +133,16 @@ include_directories(
 # add_dependencies(fulanghua_ekf_2d ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(fulanghua_ekf_2d_node src/fulanghua_ekf_2d_node.cpp)
+add_executable(pose_estimator src/pose_estimator.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(fulanghua_ekf_2d_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(fulanghua_ekf_2d_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(pose_estimator
+    ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
