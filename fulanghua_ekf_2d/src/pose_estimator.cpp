@@ -30,6 +30,8 @@
 
 #include "fulanghua_ekf_2d/pose_estimator.h"
 
+#include <boost/assign.hpp>
+
 #include <Eigen/LU>
 #include <Eigen/Dense>
 
