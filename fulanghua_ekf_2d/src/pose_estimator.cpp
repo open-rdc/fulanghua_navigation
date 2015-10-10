@@ -28,6 +28,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "fulanghua_ekf_2d/pose_estimator.h"
+
 #include <Eigen/LU>
 #include <Eigen/Dense>
 
