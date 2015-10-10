@@ -45,9 +45,11 @@ namespace fulanghua {
 class PoseEstimator
 {
 public:
-    PoseEstimator();
+    PoseEstimator(ros::NodeHandle &node);
     
-    void update();
+    void spin();
+
+    bool estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d &cov_xy_th, const ros::Time &filter_stamp, double dt);
 
 private:
     Eigen::Vector4d jacob_motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
