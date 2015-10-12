@@ -2,7 +2,7 @@
 
 fulanghua_navigation provides mobile robot navigation packages on ros.
 
-![](https://raw.githubusercontent.com/DaikiMaekawa/fulanghua_navigation/master/docs/fulanghua_icon.jpg)
+![](docs/fulanghua_icon.jpg)
 
 ## License
 
