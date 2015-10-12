@@ -215,8 +215,8 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     odom_angular_z = (odom_yaw - old_odom_yaw) / dt;
 
     ///< @todo use tf_listener for imu frame
-    Eigen::Vector3d imu_rpy;
-    //imu_meas.getBasis().getEulerYPR(imu_rpy.z(), imu_rpy.y(). imu_rpy.x());
+    double imu_roll, imu_pitch, imu_yaw;
+    imu_meas.getBasis().getEulerYPR(imu_yaw, imu_pitch, imu_roll);
 
     //predict
     Eigen::Vector2d u(odom_linear_x, odom_angular_z);
@@ -225,7 +225,7 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     Eigen::Matrix4d cov_pred = JF * cov_est_ * JF.transpose() + motion_cov_;
 
     //update
-    Eigen::Vector4d x(gpos_meas_x, gpos_meas_y, imu_rpy.y(), odom_linear_x);
+    Eigen::Vector4d x(gpos_meas_x, gpos_meas_y, imu_yaw, odom_linear_x);
     Eigen::Vector4d z = observation_model(x);
     Eigen::Matrix4d H = jacob_observation_model(x_pred);
     Eigen::Vector4d y = z - observation_model(x_pred);
