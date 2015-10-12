@@ -56,15 +56,35 @@ public:
 
 private:
     void imu_callback(const sensor_msgs::Imu &msg) {
+        imu_stamp_ = msg.header.stamp;
 
+        tf::Quaternion q;
+        quaternionMsgToTF(msg.orientation, q);
+        tf::Transform trans(q, tf::Vector3(0, 0, 0));
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "imu");
+    
+        transformer_.setTransform(meas);
     }
 
     void odom_callback(const nav_msgs::Odometry &msg) {
+        odom_stamp_ = msg.header.stamp;
 
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(msg.pose.pose.orientation, q);
+        tf::Transform trans(q, tf::Vector3(msg.pose.pose.position.x, msg.pose.pose.position.y, 0));
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "odom");
+        
+        transformer_.setTransform(meas);
     }
 
     void gpos_meas_callback(const nav_msgs::Odometry &msg) {
+        gpos_meas_stamp_ = msg.header.stamp;
 
+        tf::Quaternion q(0, 0, 0, 1);
+        tf::Transform trans(q, tf::Vector3(msg.pose.pose.position.x, msg.pose.pose.position.y, 0));
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "gpos_meas");
+
+        transformer_.setTransform(meas);
     }
 
     Eigen::Matrix4d jacob_motion_model(const Eigen::Vector4d &x, const Eigen::Vector2d &u, double dt) {
@@ -125,7 +145,9 @@ private:
     tf::StampedTransform old_odom_meas_;
     tf::Transformer transformer_;
     tf::TransformBroadcaster tf_broadcaster_;
-
+    
+    bool publish_odom_topic_;
+    bool enable_gpos_meas_;
     double update_rate_;
     std::string output_frame_;
     std::string base_frame_;
