@@ -47,8 +47,9 @@ double normalize_rad(double th) {
 PoseEstimator::PoseEstimator(ros::NodeHandle &node) : 
     enable_gpos_meas_(true),
     update_rate_(100),
-    output_frame_("combined_odom"),
-    base_frame_("map"),
+    output_frame_("odom"),
+    base_frame_("base_link"),
+    world_frame_("map"),
     x_est_(Eigen::Vector4d::Zero()),
     cov_est_(Eigen::Matrix4d::Identity()),
     pose_pub_(node.advertise<geometry_msgs::PoseWithCovarianceStamped>("self_pose", 10))
@@ -150,8 +151,10 @@ void PoseEstimator::spin() {
             
             geometry_msgs::TransformStamped tran;
             tran.header.stamp = filter_stamp;
-            tran.header.frame_id = base_frame_;
-            tran.child_frame_id = output_frame_;
+            tran.header.frame_id = output_frame_;
+            tran.child_frame_id = base_frame_;
+            //tran.header.frame_id = base_frame_;
+            //tran.child_frame_id = output_frame_;
             tran.transform.translation.x = est_pose.pose.pose.position.x;
             tran.transform.translation.y = est_pose.pose.pose.position.y;
             tran.transform.translation.z = 0.0;
@@ -163,8 +166,8 @@ void PoseEstimator::spin() {
         } else {
             old_filter_stamp = ros::Time::now();
             
-            if(transformer_.canTransform(base_frame_, "odom", old_filter_stamp)) {
-                transformer_.lookupTransform("odom", base_frame_, old_filter_stamp, old_odom_meas_);
+            if(transformer_.canTransform(world_frame_, "odom", old_filter_stamp)) {
+                transformer_.lookupTransform("odom", world_frame_, old_filter_stamp, old_odom_meas_);
             }
         }
     }
@@ -173,21 +176,21 @@ void PoseEstimator::spin() {
 bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d &cov_xy_th, const ros::Time &filter_stamp, double dt) {
     
     tf::StampedTransform odom_meas;
-    if(!transformer_.canTransform(base_frame_, "odom", filter_stamp)) {
+    if(!transformer_.canTransform(world_frame_, "odom", filter_stamp)) {
         ROS_WARN("Failed transform of odom data");
         return false;
     } else {
-        transformer_.lookupTransform("odom", base_frame_, filter_stamp, odom_meas);
+        transformer_.lookupTransform("odom", world_frame_, filter_stamp, odom_meas);
     }
     
     double gpos_meas_x, gpos_meas_y;
     if(enable_gpos_meas_) {
         tf::StampedTransform gpos_meas;
-        if(!transformer_.canTransform(base_frame_, "gpos_meas", filter_stamp)) {
+        if(!transformer_.canTransform(world_frame_, "gpos_meas", filter_stamp)) {
             ROS_WARN("Failed transform of gpos_meas data");
             return false;
         } else {
-            transformer_.lookupTransform("gpos_meas", base_frame_, filter_stamp, gpos_meas);
+            transformer_.lookupTransform("gpos_meas", world_frame_, filter_stamp, gpos_meas);
         }
 
         gpos_meas_x = gpos_meas.getOrigin().x();
@@ -198,11 +201,11 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     }
     
     tf::StampedTransform imu_meas;
-    if(!transformer_.canTransform(base_frame_, "imu", filter_stamp)) {
+    if(!transformer_.canTransform(world_frame_, "imu", filter_stamp)) {
         ROS_WARN("Failed transform of imu data");
         return false;
     } else {
-        transformer_.lookupTransform("imu", base_frame_, filter_stamp, imu_meas);
+        transformer_.lookupTransform("imu", world_frame_, filter_stamp, imu_meas);
     }
     
     double odom_linear_x = (odom_meas.getOrigin().x() - old_odom_meas_.getOrigin().x()) / dt;
