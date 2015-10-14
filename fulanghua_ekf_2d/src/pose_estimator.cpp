@@ -67,8 +67,8 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
     nh_private.param("motion_ang_err", motion_ang_err, 0.1);
     nh_private.param("motion_vel_err", motion_vel_err, 0.05);
     
-    nh_private.param("observation_x_err", observation_x_err, 1.5);
-    nh_private.param("observation_y_err", observation_y_err, 1.5);
+    nh_private.param("observation_x_err", observation_x_err, 0.1);
+    nh_private.param("observation_y_err", observation_y_err, 0.1);
     nh_private.param("observation_ang_err", observation_ang_err, 0.1);
     nh_private.param("observation_vel_err", observation_vel_err, 0.05);
 
