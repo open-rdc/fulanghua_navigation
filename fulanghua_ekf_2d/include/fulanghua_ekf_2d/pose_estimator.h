@@ -61,7 +61,7 @@ private:
         tf::Quaternion q;
         quaternionMsgToTF(msg.orientation, q);
         tf::Transform trans(q, tf::Vector3(0, 0, 0));
-        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "imu");
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, world_frame_, "imu");
     
         transformer_.setTransform(meas);
     }
@@ -72,7 +72,7 @@ private:
         tf::Quaternion q;
         tf::quaternionMsgToTF(msg.pose.pose.orientation, q);
         tf::Transform trans(q, tf::Vector3(msg.pose.pose.position.x, msg.pose.pose.position.y, 0));
-        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "odom");
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, world_frame_, "odom");
         
         transformer_.setTransform(meas);
     }
@@ -82,7 +82,7 @@ private:
 
         tf::Quaternion q(0, 0, 0, 1);
         tf::Transform trans(q, tf::Vector3(msg.pose.pose.position.x, msg.pose.pose.position.y, 0));
-        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, base_frame_, "gpos_meas");
+        tf::StampedTransform meas(trans.inverse(), msg.header.stamp, world_frame_, "gpos_meas");
 
         transformer_.setTransform(meas);
     }
@@ -120,7 +120,7 @@ private:
              0.0, 1.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0,
              0.0, 0.0, 0.0, 1.0;
-
+        
          return J;
     }
 
@@ -151,6 +151,7 @@ private:
     double update_rate_;
     std::string output_frame_;
     std::string base_frame_;
+    std::string world_frame_;
 
     ros::Time odom_stamp_;
     ros::Time gpos_meas_stamp_;
