@@ -239,6 +239,8 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     //storage estimation results
     x_est_ = x_pred + K * y;
     cov_est_ = (Eigen::Matrix4d::Identity() - K * H) * cov_pred;
+
+    old_odom_meas_ = odom_meas;
     
     pos.x() = x_est_(0);
     pos.y() = x_est_(1);
