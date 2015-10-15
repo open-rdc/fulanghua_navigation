@@ -45,14 +45,15 @@ double normalize_rad(double th) {
 }
 
 PoseEstimator::PoseEstimator(ros::NodeHandle &node) : 
+    publish_pose_topic_(true),
+    publish_odom_topic_(false),
     enable_gpos_meas_(true),
     update_rate_(100),
     output_frame_("odom"),
     base_frame_("base_link"),
     world_frame_("map"),
     x_est_(Eigen::Vector4d::Zero()),
-    cov_est_(Eigen::Matrix4d::Identity()),
-    pose_pub_(node.advertise<geometry_msgs::PoseWithCovarianceStamped>("self_pose", 10))
+    cov_est_(Eigen::Matrix4d::Identity())
 {
     ros::NodeHandle nh_private("~");
 
@@ -81,7 +82,9 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
                        0.0, observation_y_err * observation_y_err, 0.0, 0.0,
                        0.0, 0.0, observation_ang_err * observation_ang_err, 0.0,
                        0.0, 0.0, 0.0, observation_vel_err * observation_vel_err;
-
+    
+    nh_private.param("publish_pose_topic", publish_pose_topic_, publish_pose_topic_);
+    nh_private.param("publish_odom_topic", publish_odom_topic_, publish_odom_topic_);
     nh_private.param("enable_gpos_meas", enable_gpos_meas_, enable_gpos_meas_);
 
     imu_sub_ = node.subscribe("imu", 10, &PoseEstimator::imu_callback, this);
@@ -89,6 +92,12 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
 
     if(enable_gpos_meas_)
         gpos_meas_sub_ = node.subscribe("meas_gpos", 10, &PoseEstimator::gpos_meas_callback, this);
+    
+    if(publish_odom_topic_)
+        odom_pub_ = node.advertise<nav_msgs::Odometry>("combined_odom", 10);
+
+    if(publish_pose_topic_)
+        pose_pub_ = node.advertise<geometry_msgs::PoseWithCovarianceStamped>("self_pose", 10);
 
 }
 
@@ -132,33 +141,18 @@ void PoseEstimator::spin() {
             double est_yaw;
             Eigen::Matrix3d est_cov;
             if(!estimate(est_pos, est_yaw, est_cov, filter_stamp, dt)) continue;
-
-            geometry_msgs::PoseWithCovarianceStamped est_pose;
-            est_pose.header.stamp = filter_stamp;
-            est_pose.header.frame_id = base_frame_;
-            est_pose.pose.pose.position.x = est_pos.x();
-            est_pose.pose.pose.position.y = est_pos.y();
-            est_pose.pose.pose.orientation = tf::createQuaternionMsgFromYaw(est_yaw);
-
-            est_pose.pose.covariance = boost::assign::list_of
-                (est_cov(0)) (0) (0) (0) (0) (0)
-                (0) (est_cov(1)) (0) (0) (0) (0)
-                (0) (0) (999999.9) (0) (0) (0)
-                (0) (0) (0) (999999.9) (0) (0)
-                (0) (0) (0) (0) (0) (est_cov(2));
-
-            pose_pub_.publish(est_pose);
             
+            if(publish_odom_topic_) publish_odom(filter_stamp, est_pos, est_yaw, est_cov);
+            if(publish_pose_topic_) publish_pose(filter_stamp, est_pos, est_yaw, est_cov);
+                        
             geometry_msgs::TransformStamped tran;
             tran.header.stamp = filter_stamp;
             tran.header.frame_id = output_frame_;
             tran.child_frame_id = base_frame_;
-            //tran.header.frame_id = base_frame_;
-            //tran.child_frame_id = output_frame_;
-            tran.transform.translation.x = est_pose.pose.pose.position.x;
-            tran.transform.translation.y = est_pose.pose.pose.position.y;
+            tran.transform.translation.x = est_pos.x();
+            tran.transform.translation.y = est_pos.y();
             tran.transform.translation.z = 0.0;
-            tran.transform.rotation = est_pose.pose.pose.orientation;
+            tran.transform.rotation = tf::createQuaternionMsgFromYaw(est_yaw);
 
             tf_broadcaster_.sendTransform(tran);
 
@@ -249,6 +243,45 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     
     return true;
 }
+
+void PoseEstimator::publish_odom(const ros::Time &stamp, const Eigen::Vector2d &pos, double yaw, const Eigen::Matrix3d &cov_xy_th) {
+    nav_msgs::Odometry est_odom;
+    est_odom.header.stamp = stamp;
+    est_odom.header.frame_id = output_frame_;
+    est_odom.child_frame_id = base_frame_;
+
+    est_odom.pose.pose.position.x = pos.x();
+    est_odom.pose.pose.position.y = pos.y();
+    est_odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+    est_odom.pose.covariance = boost::assign::list_of
+        (cov_xy_th(0)) (0) (0) (0) (0) (0)
+        (0) (cov_xy_th(1)) (0) (0) (0) (0)
+        (0) (0) (999999.9) (0) (0) (0)
+        (0) (0) (0) (999999.9) (0) (0)
+        (0) (0) (0) (0) (0) (cov_xy_th(2));
+
+    odom_pub_.publish(est_odom);
+}
+
+void PoseEstimator::publish_pose(const ros::Time &stamp, const Eigen::Vector2d &pos, double yaw, const Eigen::Matrix3d &cov_xy_th) {
+    geometry_msgs::PoseWithCovarianceStamped est_pose;
+    est_pose.header.stamp = stamp;
+    est_pose.header.frame_id = base_frame_;
+    est_pose.pose.pose.position.x = pos.x();
+    est_pose.pose.pose.position.y = pos.y();
+    est_pose.pose.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+
+    est_pose.pose.covariance = boost::assign::list_of
+        (cov_xy_th(0)) (0) (0) (0) (0) (0)
+        (0) (cov_xy_th(1)) (0) (0) (0) (0)
+        (0) (0) (999999.9) (0) (0) (0)
+        (0) (0) (0) (999999.9) (0) (0)
+        (0) (0) (0) (0) (0) (cov_xy_th(2));
+
+    pose_pub_.publish(est_pose);
+}
+
+
 
 } //namespace fulanghua
 

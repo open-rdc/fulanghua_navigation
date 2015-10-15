@@ -55,6 +55,12 @@ public:
     bool estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d &cov_xy_th, const ros::Time &filter_stamp, double dt);
 
 private:
+    void publish_odom(const ros::Time &stamp, const Eigen::Vector2d &pos, double yaw
+    , const Eigen::Matrix3d &cov_xy_th);
+
+    void publish_pose(const ros::Time &stamp, const Eigen::Vector2d &pos, double yaw
+    , const Eigen::Matrix3d &cov_xy_th);
+
     void imu_callback(const sensor_msgs::Imu &msg) {
         imu_stamp_ = msg.header.stamp;
 
@@ -134,7 +140,7 @@ private:
         return H*x;
     }
 
-    ros::Publisher pose_pub_;
+    ros::Publisher pose_pub_, odom_pub_;
     ros::Subscriber odom_sub_, imu_sub_, gpos_meas_sub_;
     
     Eigen::Matrix4d cov_est_;
@@ -147,6 +153,7 @@ private:
     tf::TransformBroadcaster tf_broadcaster_;
     
     bool publish_odom_topic_;
+    bool publish_pose_topic_;
     bool enable_gpos_meas_;
     double update_rate_;
     std::string output_frame_;
