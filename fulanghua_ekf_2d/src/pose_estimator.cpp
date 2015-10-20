@@ -47,7 +47,6 @@ double normalize_rad(double th) {
 PoseEstimator::PoseEstimator(ros::NodeHandle &node) : 
     publish_pose_topic_(true),
     publish_odom_topic_(false),
-    enable_gpos_meas_(true),
     update_rate_(100),
     output_frame_("odom"),
     base_frame_("base_link"),
@@ -85,13 +84,11 @@ PoseEstimator::PoseEstimator(ros::NodeHandle &node) :
     
     nh_private.param("publish_pose_topic", publish_pose_topic_, publish_pose_topic_);
     nh_private.param("publish_odom_topic", publish_odom_topic_, publish_odom_topic_);
-    nh_private.param("enable_gpos_meas", enable_gpos_meas_, enable_gpos_meas_);
 
     imu_sub_ = node.subscribe("imu", 10, &PoseEstimator::imu_callback, this);
     odom_sub_ = node.subscribe("odom", 10, &PoseEstimator::odom_callback, this);
 
-    if(enable_gpos_meas_)
-        gpos_meas_sub_ = node.subscribe("meas_gpos", 10, &PoseEstimator::gpos_meas_callback, this);
+    gpos_meas_sub_ = node.subscribe("meas_gpos", 10, &PoseEstimator::gpos_meas_callback, this);
     
     if(publish_odom_topic_)
         odom_pub_ = node.advertise<nav_msgs::Odometry>("combined_odom", 10);
@@ -111,23 +108,18 @@ void PoseEstimator::spin() {
         rate.sleep();
         
         if(old_filter_stamp != ros::Time(0) && imu_stamp_ != ros::Time(0) && odom_stamp_ != ros::Time(0)) {
-            if(enable_gpos_meas_) {
-                if(gpos_meas_stamp_ != ros::Time(0)) meas_initialized = true;
-            } else {
-                meas_initialized = true;
-            }
+            meas_initialized = true;
+        } else {
+            meas_initialized = false;
         }
 
         if(meas_initialized) {
-            
             ros::Time now = ros::Time::now();
             ros::Time filter_stamp = now;
 
             filter_stamp = std::min(filter_stamp, odom_stamp_);
             filter_stamp = std::min(filter_stamp, imu_stamp_);
-            
-            if(enable_gpos_meas_)
-                filter_stamp = std::min(filter_stamp, gpos_meas_stamp_);
+            filter_stamp = std::min(filter_stamp, gpos_meas_stamp_);
 
             double dt = (now - old_filter_stamp).toSec();
             if(fabs(dt) < 0.0001) continue;
@@ -178,21 +170,16 @@ bool PoseEstimator::estimate(Eigen::Vector2d &pos, double &yaw, Eigen::Matrix3d 
     }
     
     double gpos_meas_x, gpos_meas_y;
-    if(enable_gpos_meas_) {
-        tf::StampedTransform gpos_meas;
-        if(!transformer_.canTransform(world_frame_, "gpos_meas", filter_stamp)) {
-            ROS_WARN("Failed transform of gpos_meas data");
-            return false;
-        } else {
-            transformer_.lookupTransform("gpos_meas", world_frame_, filter_stamp, gpos_meas);
-        }
-
-        gpos_meas_x = gpos_meas.getOrigin().x();
-        gpos_meas_y = gpos_meas.getOrigin().y();
+    tf::StampedTransform gpos_meas;
+    if(!transformer_.canTransform(world_frame_, "gpos_meas", filter_stamp)) {
+        ROS_WARN("Failed transform of gpos_meas data");
+        return false;
     } else {
-        gpos_meas_x = odom_meas.getOrigin().x();
-        gpos_meas_y = odom_meas.getOrigin().y();
+        transformer_.lookupTransform("gpos_meas", world_frame_, filter_stamp, gpos_meas);
     }
+
+    gpos_meas_x = gpos_meas.getOrigin().x();
+    gpos_meas_y = gpos_meas.getOrigin().y();
     
     tf::StampedTransform imu_meas;
     if(!transformer_.canTransform(world_frame_, "imu", filter_stamp)) {
