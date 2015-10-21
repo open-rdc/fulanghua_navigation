@@ -10,7 +10,9 @@ namespace fulanghua {
 class PathSimilarity {
 public:
     PathSimilarity(ros::NodeHandle &nh) : 
-        path_markers_pub_(nh.advertise<visualization_msgs::MarkerArray>("path_markers", 10))       
+        path_markers_pub_(nh.advertise<visualization_msgs::MarkerArray>("path_markers", 10)),
+        path_a_sub_(nh.subscribe("path_a", 1, &PathSimilarity::pathACallback, this)),
+        path_b_sub_(nh.subscribe("path_b", 1, &PathSimilarity::pathBCallback, this))
     {
 
     }
@@ -30,14 +32,18 @@ public:
                         line_strip.header.frame_id = "map";
                         line_strip.header.stamp = ros::Time::now();
                         line_strip.ns = "fulanghua_evaluator";
+                        
                         line_strip.id = marker_id;
                         marker_id++;
+
+                        line_strip.scale.x = 0.05;
                         line_strip.type = visualization_msgs::Marker::LINE_STRIP;
                         line_strip.action = visualization_msgs::Marker::ADD;
                         line_strip.color.b = 1.0;
                         line_strip.color.a = 1.0;
                         line_strip.points.push_back(pose_a.pose.position);
                         line_strip.points.push_back(pose_b.pose.position);
+                        viz_markers.markers.push_back(line_strip);
                         
                         break;
                     }
@@ -66,6 +72,7 @@ private:
 
     nav_msgs::Path path_a_, path_b_;
     ros::Publisher path_markers_pub_;
+    ros::Subscriber path_a_sub_, path_b_sub_;
 };
 
 } //namespace fulanghua
