@@ -22,6 +22,7 @@ def main():
     h_angular_freq = 1.0
     h_angular_phase = math.pi / 2.0
     h_amplitude = 0.5
+    scale = 10.0
     #h_angular_freq = 3.0
     #h_angular_phase = math.pi / 2.0
     #h_amplitude = 1.0
@@ -29,6 +30,9 @@ def main():
     for t in frange(0, 2.0 * math.pi, 0.01):
         x = h_amplitude * math.sin(h_angular_freq * t + h_angular_phase)
         y = math.sin(t)
+
+        x *= scale
+        y *= scale
         
         pose = PoseStamped()
         pose.pose.position.x = x
