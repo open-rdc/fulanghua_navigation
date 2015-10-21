@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+import rospy
+import tf
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
+
+import math
+
+def frange(x, y, jump):
+    while x < y:
+        yield x
+        x += jump
+
+def main():
+    rospy.init_node('lissajous_curve_publisher')
+    
+    path_pub = rospy.Publisher('lissajous_path', Path, queue_size=10)
+    path = Path()
+
+    path.header.frame_id = "map"
+    h_angular_freq = 1.0
+    h_angular_phase = math.pi / 2.0
+    h_amplitude = 0.5
+    scale = 10.0
+    #h_angular_freq = 3.0
+    #h_angular_phase = math.pi / 2.0
+    #h_amplitude = 1.0
+    
+    for t in frange(0, 2.0 * math.pi, 0.01):
+        x = h_amplitude * math.sin(h_angular_freq * t + h_angular_phase)
+        y = math.sin(t)
+
+        x *= scale
+        y *= scale
+        
+        pose = PoseStamped()
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        q = tf.transformations.quaternion_from_euler(0, 0, y)
+        pose.pose.orientation.x = q[0]
+        pose.pose.orientation.y = q[1]
+        pose.pose.orientation.z = q[2]
+        pose.pose.orientation.w = q[3]
+        path.poses.append(pose)
+    
+    r = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        path.header.stamp = rospy.get_rostime()
+        path_pub.publish(path)
+        r.sleep()
+    
+if __name__ == '__main__':
+    main()
+
