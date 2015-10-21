@@ -154,7 +154,6 @@ private:
     
     bool publish_odom_topic_;
     bool publish_pose_topic_;
-    bool enable_gpos_meas_;
     double update_rate_;
     std::string output_frame_;
     std::string base_frame_;
