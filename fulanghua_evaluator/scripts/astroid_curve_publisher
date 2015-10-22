@@ -22,12 +22,15 @@ def main():
     radius = rospy.get_param('~radius', 10.0)
     resolution = rospy.get_param('~resolution', 0.01)
     holonomic = rospy.get_param('~holonomic', False)
+    offset_x = rospy.get_param('~offset_x', 0.0)
+    offset_y = rospy.get_param('~offset_y', 0.0)
+    update_rate = rospy.get_param('~update_rate', 0.3)
 
     has_initialize = True
     
     for t in frange(-math.pi, math.pi, resolution):
-        x = radius * math.cos(t) ** 3
-        y = radius * math.sin(t) ** 3
+        x = radius * math.cos(t) ** 3 + offset_x
+        y = radius * math.sin(t) ** 3 + offset_y
         
         if has_initialize:
             old_x = x
@@ -60,7 +63,7 @@ def main():
         old_x = x
         old_y = y
     
-    r = rospy.Rate(10)
+    r = rospy.Rate(update_rate)
     while not rospy.is_shutdown():
         path.header.stamp = rospy.get_rostime()
         path_pub.publish(path)
