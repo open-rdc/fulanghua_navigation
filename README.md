@@ -1,6 +1,4 @@
-# fulanghua_navigation
-
-[![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation)
+# fulanghua_navigation [![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation) ![BSD](http://img.shields.io/badge/license-BSD-green.svg)
 
 ![](docs/fulanghua_icon.jpg)
 
