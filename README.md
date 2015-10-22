@@ -4,7 +4,9 @@
 
 ![](docs/fulanghua_icon.jpg)
 
-fulanghua_navigation provides mobile robot navigation packages on ros. 
+## About
+
+fulanghua_navigation provides mobile robot navigation packages on ros.
 
 ## Requirements
 
