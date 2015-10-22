@@ -18,12 +18,13 @@ def main():
     path_pub = rospy.Publisher('astroid_path', Path, queue_size=10)
     path = Path()
 
-    path.header.frame_id = "map"
-    radius = 10.0
+    path.header.frame_id = rospy.get_param('~output_frame', 'map')
+    radius = rospy.get_param('~radius', 10.0)
+    resolution = rospy.get_param('~resolution', 0.01)
 
     has_initialize = True
     
-    for t in frange(-math.pi, math.pi, 0.01):
+    for t in frange(-math.pi, math.pi, resolution):
         x = radius * math.cos(t) ** 3
         y = radius * math.sin(t) ** 3
         
