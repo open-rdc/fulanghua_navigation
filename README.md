@@ -1,4 +1,4 @@
-# fulanghua_navigation [![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation) ![BSD](http://img.shields.io/badge/license-BSD-green.svg)
+# fulanghua_navigation [![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation)
 
 ![](docs/fulanghua_icon.jpg)
 
@@ -16,8 +16,10 @@ rosdep install fulanghua_navigation
 
 If you find a bug please let me know by opening an issue at [here](https://github.com/DaikiMaekawa/fulanghua_navigation/issues).
 
-## License
+## License 
 
-Copyright (c) 2015, Daiki Maekawa and Chiba Institute of Technology. (BSD License)
+![BSD](http://img.shields.io/badge/license-BSD-green.svg)
+
+Copyright (c) 2015, Daiki Maekawa and Chiba Institute of Technology.
 
 See LICENSE for more info.
