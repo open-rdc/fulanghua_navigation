@@ -2,9 +2,11 @@
 
 [![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation)
 
-![](docs/fulanghua_icon.jpg)
+## About
 
-fulanghua_navigation provides mobile robot navigation packages on ros. 
+fulanghua_navigation provides mobile robot navigation packages on ros.
+
+![](docs/fulanghua_icon.jpg)
 
 ## Requirements
 
