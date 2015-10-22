@@ -21,6 +21,7 @@ def main():
     path.header.frame_id = rospy.get_param('~output_frame', 'map')
     radius = rospy.get_param('~radius', 10.0)
     resolution = rospy.get_param('~resolution', 0.01)
+    holonomic = rospy.get_param('~holonomic', False)
 
     has_initialize = True
     
@@ -38,16 +39,16 @@ def main():
         pose.pose.position.y = y
         
         yaw = 0.0
-        if (-math.pi/2 <= t <= 0) or (math.pi/2 <= t <=math.pi):
-            yaw = math.atan2(old_y - y, old_x - x)
+        if holonomic:
+            if(-0.01 < math.cos(t) < 0.01):
+                yaw = 0.0
+            else:
+                yaw = -math.sin(t) / math.cos(t)
         else:
-            yaw = math.atan2(y - old_y, x - old_x)
-        
-        #yaw = 0.0
-        #if(-0.1 < math.cos(t) < 0.1):
-        #    yaw = 0.0
-        #else:
-        #    yaw = -math.sin(t) / math.cos(t)
+            if (-math.pi/2 <= t <= 0) or (math.pi/2 <= t <=math.pi):
+                yaw = math.atan2(old_y - y, old_x - x)
+            else:
+                yaw = math.atan2(y - old_y, x - old_x)
         
         q = tf.transformations.quaternion_from_euler(0, 0, yaw)
         pose.pose.orientation.x = q[0]
