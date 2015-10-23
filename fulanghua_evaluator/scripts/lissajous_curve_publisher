@@ -19,24 +19,27 @@ def main():
     path = Path()
 
     path.header.frame_id = "map"
-    h_angular_freq = 1.0
-    h_angular_phase = math.pi / 2.0
-    h_amplitude = 0.5
-    scale = 10.0
-    #h_angular_freq = 3.0
-    #h_angular_phase = math.pi / 2.0
-    #h_amplitude = 1.0
+    x_angular_freq = 3.0
+    y_angular_freq = 2.0
+    z_angular_freq = 4.0
+
+    x_angular_phase = 0
+    y_angular_phase = math.pi / 2.0
+    z_angular_phase = 0
+
+    x_amplitude = 2.0
+    y_amplitude = 2.0
+    z_amplitude = 2.0
     
     for t in frange(0, 2.0 * math.pi, 0.01):
-        x = h_amplitude * math.sin(h_angular_freq * t + h_angular_phase)
-        y = math.sin(t)
-
-        x *= scale
-        y *= scale
+        x = x_amplitude * math.cos(x_angular_freq * t + x_angular_phase)
+        y = y_amplitude * math.cos(y_angular_freq * t + y_angular_phase)
+        z = z_amplitude * math.cos(z_angular_freq * t + z_angular_phase) + z_amplitude
         
         pose = PoseStamped()
         pose.pose.position.x = x
         pose.pose.position.y = y
+        pose.pose.position.z = z
         q = tf.transformations.quaternion_from_euler(0, 0, y)
         pose.pose.orientation.x = q[0]
         pose.pose.orientation.y = q[1]
