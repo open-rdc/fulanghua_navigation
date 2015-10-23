@@ -18,20 +18,21 @@ def main():
     path_pub = rospy.Publisher('lissajous_path', Path, queue_size=10)
     path = Path()
 
-    path.header.frame_id = "map"
-    x_angular_freq = 3.0
-    y_angular_freq = 2.0
-    z_angular_freq = 4.0
+    path.header.frame_id = rospy.get_param('~output_frame', 'map')
+    resolution  = rospy.get_param('resolution', 0.01)
+    x_angular_freq = rospy.get_param('~x_angular_freq', 3.0)
+    y_angular_freq = rospy.get_param('~y_angular_freq', 2.0)
+    z_angular_freq = rospy.get_param('~z_angular_freq', 4.0)
 
-    x_angular_phase = 0
-    y_angular_phase = math.pi / 2.0
-    z_angular_phase = 0
+    x_angular_phase = rospy.get_param('~x_angular_phase', 0.0)
+    y_angular_phase = rospy.get_param('~y_angular_phase', math.pi / 2.0)
+    z_angular_phase = rospy.get_param('~z_angular_phase', 0.0)
 
-    x_amplitude = 2.0
-    y_amplitude = 2.0
-    z_amplitude = 2.0
+    x_amplitude = rospy.get_param('~x_amplitude', 2.0)
+    y_amplitude = rospy.get_param('~y_amplitude', 2.0)
+    z_amplitude = rospy.get_param('~z_amplitude', 2.0)
     
-    for t in frange(0, 2.0 * math.pi, 0.01):
+    for t in frange(0, 2.0 * math.pi, resolution):
         x = x_amplitude * math.cos(x_angular_freq * t + x_angular_phase)
         y = y_amplitude * math.cos(y_angular_freq * t + y_angular_phase)
         z = z_amplitude * math.cos(z_angular_freq * t + z_angular_phase) + z_amplitude
