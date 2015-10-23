@@ -20,7 +20,7 @@ def main():
 
     path.header.frame_id = rospy.get_param('~output_frame', 'map')
     radius = rospy.get_param('~radius', 10.0)
-    resolution = rospy.get_param('~resolution', 0.01)
+    resolution = rospy.get_param('~resolution', 0.05)
     holonomic = rospy.get_param('~holonomic', False)
     offset_x = rospy.get_param('~offset_x', 0.0)
     offset_y = rospy.get_param('~offset_y', 0.0)
