@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   tf
   std_msgs
+  fulanghua_srvs
 )
 
 find_package(PkgConfig)
