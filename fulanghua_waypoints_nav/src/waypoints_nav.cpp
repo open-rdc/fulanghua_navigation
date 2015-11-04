@@ -29,7 +29,7 @@
  */
 
 #include <ros/ros.h>
-#include <std_msgs/String.h>
+#include <std_srvs/Trigger.h>
 #include <std_srvs/Empty.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -38,14 +38,14 @@
 #include <actionlib/client/simple_action_client.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <fulanghua_srvs/Pose.h>
 
 #include <yaml-cpp/yaml.h>
 
 #include <vector>
 #include <fstream>
 #include <string>
-
-#include <visualization_msgs/MarkerArray.h>
 
 #ifdef NEW_YAMLCPP
 template<typename T>
@@ -83,18 +83,16 @@ public:
         }
         
         ros::NodeHandle nh;
-        syscommand_sub_ = nh.subscribe("syscommand", 1, &WaypointsNavigation::syscommandCallback, this);
+        start_server_ = nh.advertiseService("start_nav", &WaypointsNavigation::startNavigationCallback, this);
         cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
     }
 
-    void syscommandCallback(const std_msgs::String &msg){
-        if(msg.data == "start"){
-            has_activate_ = true;
-        }
+    bool startNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response) {
+        has_activate_ = true;
     }
-
+    
     void cmdVelCallback(const geometry_msgs::Twist &msg){
         if(msg.linear.x > -0.001 && msg.linear.x < 0.001   &&
            msg.linear.y > -0.001 && msg.linear.y < 0.001   &&
@@ -318,7 +316,7 @@ private:
     std::string robot_frame_, world_frame_;
     tf::TransformListener tf_listener_;
     ros::Rate rate_;
-    ros::Subscriber syscommand_sub_;
+    ros::ServiceServer start_server_;
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher marker_pub_;
     ros::ServiceClient clear_costmaps_srv_;

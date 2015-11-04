@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   tf
-  std_msgs
+  std_srvs
   fulanghua_srvs
 )
 
@@ -33,6 +33,8 @@ include_directories(
 
 add_executable(waypoints_saver src/waypoints_saver.cpp)
 add_executable(waypoints_nav src/waypoints_nav.cpp)
+
+add_dependencies(waypoints_nav ${fulanghua_srvs_EXPORTED_TARGETS})
 
 target_link_libraries(waypoints_saver
     ${catkin_LIBRARIES}
