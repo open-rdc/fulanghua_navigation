@@ -34,7 +34,6 @@
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <std_msgs/String.h>
 
 #include <vector>
 #include <fstream>
