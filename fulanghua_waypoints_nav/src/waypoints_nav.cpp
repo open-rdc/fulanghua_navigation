@@ -84,6 +84,7 @@ public:
         
         ros::NodeHandle nh;
         start_server_ = nh.advertiseService("start_nav", &WaypointsNavigation::startNavigationCallback, this);
+        suspend_server_ = nh.advertiseService("suspend_pose", &WaypointsNavigation::suspendPoseCallback, this);
         cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
@@ -91,6 +92,16 @@ public:
 
     bool startNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response) {
         has_activate_ = true;
+        response.success = true;
+        return true;
+    }
+
+    bool suspendPoseCallback(fulanghua_srvs::Pose::Request &request, fulanghua_srvs::Pose::Response &response) {
+        startNavigationGL(request.pose);
+        while(!navigationFinished() && ros::ok()) sleep();
+        response.status = true;
+
+        return true;
     }
     
     void cmdVelCallback(const geometry_msgs::Twist &msg){
@@ -317,6 +328,7 @@ private:
     tf::TransformListener tf_listener_;
     ros::Rate rate_;
     ros::ServiceServer start_server_;
+    ros::ServiceServer suspend_server_;
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher marker_pub_;
     ros::ServiceClient clear_costmaps_srv_;
