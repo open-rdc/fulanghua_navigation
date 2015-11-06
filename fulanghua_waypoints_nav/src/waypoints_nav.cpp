@@ -111,7 +111,10 @@ public:
         }
         
         std_srvs::Empty empty;
-        clear_costmaps_srv_.call(empty);
+        while(!clear_costmaps_srv_.call(empty)) {
+            ROS_WARN("Resend clear costmap service");
+            sleep();
+        }
 
         current_waypoint_ = waypoints_.begin();
         has_activate_ = true;
