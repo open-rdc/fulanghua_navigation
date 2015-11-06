@@ -105,6 +105,11 @@ public:
     }
 
     bool startNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response) {
+        if(has_activate_) {
+            response.success = false;
+            return false;
+        }
+        
         std_srvs::Empty empty;
         clear_costmaps_srv_.call(empty);
 
