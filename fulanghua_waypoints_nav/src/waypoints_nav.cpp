@@ -126,7 +126,7 @@ public:
         
         ///< @todo calculating metric with request orientation
         double min_dist = std::numeric_limits<double>::max();
-        for(std::vector<geometry_msgs::PointStamped>::iterator it = waypoints_.begin(); it != waypoints_.end(); it++) {
+        for(std::vector<geometry_msgs::PointStamped>::iterator it = waypoints_.begin(); it != waypoints_.end()-1; it++) {
             double dist = hypot(it->point.x - request.pose.position.x, it->point.y - request.pose.position.y);
             if(dist < min_dist) {
                 min_dist = dist;
@@ -358,7 +358,7 @@ public:
                         sleep();
                     }
 
-                    if(current_waypoint_ != waypoints_.end()) {
+                    if(current_waypoint_ != waypoints_.end()-1) {
                         current_waypoint_++;
                     } else {
                         startNavigationGL(finish_pose_);
