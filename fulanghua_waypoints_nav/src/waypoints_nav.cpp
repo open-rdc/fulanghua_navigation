@@ -46,6 +46,9 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <exception>
+#include <math.h>
+#include <limits>
 
 #ifdef NEW_YAMLCPP
 template<typename T>
@@ -54,6 +57,11 @@ void operator >> (const YAML::Node& node, T& i)
     i = node.as<T>();
 }
 #endif
+
+class SwitchRunningStatus : public std::exception {
+public:
+    SwitchRunningStatus() : std::exception() { }
+};
 
 class WaypointsNavigation{
 public:
@@ -79,18 +87,82 @@ public:
         private_nh.param("filename", filename, filename);
         if(filename != ""){
             ROS_INFO_STREAM("Read waypoints data from " << filename);
-            readFile(filename);
+            if(!readFile(filename)) {
+                ROS_ERROR("Failed loading waypoints file");
+            }
+            current_waypoint_ = waypoints_.begin();
+        } else {
+            ROS_ERROR("waypoints file doesn't have name");
         }
         
         ros::NodeHandle nh;
-        start_server_ = nh.advertiseService("start_nav", &WaypointsNavigation::startNavigationCallback, this);
+        start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
+        suspend_server_ = nh.advertiseService("suspend_wp_pose", &WaypointsNavigation::suspendPoseCallback, this);
+        resume_server_ = nh.advertiseService("resume_wp_pose", &WaypointsNavigation::resumePoseCallback, this);
         cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
     }
 
     bool startNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response) {
+        if(has_activate_) {
+            response.success = false;
+            return false;
+        }
+        
+        std_srvs::Empty empty;
+        while(!clear_costmaps_srv_.call(empty)) {
+            ROS_WARN("Resend clear costmap service");
+            sleep();
+        }
+
+        current_waypoint_ = waypoints_.begin();
         has_activate_ = true;
+        response.success = true;
+        return true;
+    }
+
+    bool resumePoseCallback(fulanghua_srvs::Pose::Request &request, fulanghua_srvs::Pose::Response &response) {
+        if(has_activate_) {
+            response.status = false;
+            return false;
+        }
+        
+        std_srvs::Empty empty;
+        clear_costmaps_srv_.call(empty);
+        //move_base_action_.cancelAllGoals();
+        
+        ///< @todo calculating metric with request orientation
+        double min_dist = std::numeric_limits<double>::max();
+        for(std::vector<geometry_msgs::PointStamped>::iterator it = waypoints_.begin(); it != waypoints_.end()-1; it++) {
+            double dist = hypot(it->point.x - request.pose.position.x, it->point.y - request.pose.position.y);
+            if(dist < min_dist) {
+                min_dist = dist;
+                current_waypoint_ = it;
+            }
+        }
+        
+        response.status = true;
+        has_activate_ = true;
+
+        return true;
+    }
+
+    bool suspendPoseCallback(fulanghua_srvs::Pose::Request &request, fulanghua_srvs::Pose::Response &response) {
+        if(!has_activate_) {
+            response.status = false;
+            return false;
+        }
+        
+        //move_base_action_.cancelAllGoals();
+        startNavigationGL(request.pose);
+        while(!navigationFinished() && ros::ok()) {
+            sleep();
+        }
+        response.status = true;
+        has_activate_ = false;
+
+        return true;
     }
     
     void cmdVelCallback(const geometry_msgs::Twist &msg){
@@ -276,32 +348,36 @@ public:
 
     void run(){
         while(ros::ok()){
-            if(has_activate_){
-                for(int i=0; i < waypoints_.size(); i++){
-                    ROS_INFO_STREAM("waypoint = " << waypoints_[i]);
-                    if(!ros::ok()) break;
-                    
-                    startNavigationGL(waypoints_[i].point);
+            try {
+                if(has_activate_) {
+                    ROS_INFO_STREAM("waypoints = " << *current_waypoint_);
+                    startNavigationGL(current_waypoint_->point);
                     double start_nav_time = ros::Time::now().toSec();
-                    while(!onNavigationPoint(waypoints_[i].point)){
+                    while(!onNavigationPoint(current_waypoint_->point)) {
+                        if(!has_activate_)
+                            throw SwitchRunningStatus();
+                        
                         double time = ros::Time::now().toSec();
-                        if(time - start_nav_time > 10.0 && time - last_moved_time_ > 10.0){
+                        if(time - start_nav_time > 10.0 && time - last_moved_time_ > 10.0) {
                             ROS_WARN("Resend the navigation goal.");
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
-                            startNavigationGL(waypoints_[i].point);
+                            startNavigationGL(current_waypoint_->point);
                             start_nav_time = time;
                         }
-                        actionlib::SimpleClientGoalState state = move_base_action_.getState();
                         sleep();
                     }
-                    ROS_INFO("waypoint goal");
+
+                    if(current_waypoint_ != waypoints_.end()-1) {
+                        current_waypoint_++;
+                    } else {
+                        startNavigationGL(finish_pose_);
+                        while(!navigationFinished() && ros::ok()) sleep();
+                        has_activate_ = false;
+                    }
                 }
-                ROS_INFO("waypoints clear");
-                waypoints_.clear();
-                startNavigationGL(finish_pose_);
-                while(!navigationFinished() && ros::ok()) sleep();
-                has_activate_ = false;
+            } catch(const SwitchRunningStatus &e) {
+                ROS_INFO_STREAM("running status switched");
             }
 
             sleep();
@@ -311,16 +387,18 @@ public:
 private:
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_action_;
     std::vector<geometry_msgs::PointStamped> waypoints_;
+    std::vector<geometry_msgs::PointStamped>::iterator current_waypoint_;
     geometry_msgs::Pose finish_pose_;
     bool has_activate_;
     std::string robot_frame_, world_frame_;
     tf::TransformListener tf_listener_;
     ros::Rate rate_;
-    ros::ServiceServer start_server_;
+    ros::ServiceServer start_server_, suspend_server_, resume_server_;
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher marker_pub_;
     ros::ServiceClient clear_costmaps_srv_;
     double last_moved_time_;
+
 };
 
 int main(int argc, char *argv[]){
