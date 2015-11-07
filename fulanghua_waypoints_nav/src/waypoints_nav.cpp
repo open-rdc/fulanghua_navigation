@@ -350,10 +350,30 @@ public:
         while(ros::ok()){
             try {
                 if(has_activate_) {
-                    ROS_INFO_STREAM("waypoints = " << *current_waypoint_);
-                    startNavigationGL(current_waypoint_->point);
+                    geometry_msgs::Pose goal_pose;
+                    if(current_waypoint_ == waypoints_.end()-1) {
+                        ROS_INFO("prepare finish pose");
+                        double goal_direction = atan2(finish_pose_.position.y - current_waypoint_->point.y,
+                                                      finish_pose_.position.x - current_waypoint_->point.x);
+                        
+                        goal_pose.position = current_waypoint_->point;
+                        goal_pose.orientation = tf::createQuaternionMsgFromYaw(goal_direction);
+                    } else {
+                        ROS_INFO("calculate waypoint direction");
+                        double goal_direction = atan2((current_waypoint_+1)->point.y - current_waypoint_->point.y,
+                                                      (current_waypoint_+1)->point.x - current_waypoint_->point.x);
+                        
+                        ROS_INFO_STREAM("goal_direction = " << goal_direction);
+                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->point.y);
+                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->point.y);
+
+                        goal_pose.position = current_waypoint_->point;
+                        goal_pose.orientation = tf::createQuaternionMsgFromYaw(goal_direction);
+                    }
+
+                    startNavigationGL(goal_pose);
                     double start_nav_time = ros::Time::now().toSec();
-                    while(!onNavigationPoint(current_waypoint_->point)) {
+                    while(!onNavigationPoint(goal_pose.position)) {
                         if(!has_activate_)
                             throw SwitchRunningStatus();
                         
@@ -362,7 +382,7 @@ public:
                             ROS_WARN("Resend the navigation goal.");
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
-                            startNavigationGL(current_waypoint_->point);
+                            startNavigationGL(goal_pose);
                             start_nav_time = time;
                         }
                         sleep();
