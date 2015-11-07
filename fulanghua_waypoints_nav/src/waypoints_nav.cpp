@@ -130,7 +130,7 @@ public:
         
         std_srvs::Empty empty;
         clear_costmaps_srv_.call(empty);
-        move_base_action_.cancelAllGoals();
+        //move_base_action_.cancelAllGoals();
         
         ///< @todo calculating metric with request orientation
         double min_dist = std::numeric_limits<double>::max();
@@ -154,9 +154,11 @@ public:
             return false;
         }
         
-        move_base_action_.cancelAllGoals();
+        //move_base_action_.cancelAllGoals();
         startNavigationGL(request.pose);
-        while(!navigationFinished() && ros::ok()) sleep();
+        while(!navigationFinished() && ros::ok()) {
+            sleep();
+        }
         response.status = true;
         has_activate_ = false;
 
