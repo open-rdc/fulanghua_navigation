@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package>
+  <name>fulanghua_navigation</name>
+  <version>0.0.1</version>
+  <description>The fulanghua_navigation package</description>
+
+  <maintainer email="d.maekawa@rapyuta-robotics.com">Daiki Maekawa</maintainer>
+
+  <license>BSD</license>
+
+  <author email="d.maekawa@rapyuta-robotics.com">Daiki Maekawa</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>fulanghua_ekf_2d</run_depend>
+  <run_depend>fulanghua_evaluator</run_depend>
+  <run_depend>fulanghua_srvs</run_depend>
+  <run_depend>fulanghua_waypoints_nav</run_depend>
+
+  <export>
+      <metapackage/>
+  </export>
+</package>
