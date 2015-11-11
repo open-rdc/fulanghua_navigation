@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package>
+  <name>fulanghua_static_path_publisher</name>
+  <version>0.0.1</version>
+  <description>The fulanghua_static_path_publisher package</description>
+
+  <maintainer email="d.maekawa@rapyuta-robotics.com">Daiki Maekawa</maintainer>
+
+  <license>BSD</license>
+
+  <author>Daiki Maekawa</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+  <export>
+  </export>
+</package>
