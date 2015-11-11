@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import rospy
+import tf
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
+
+import math
+
+def frange(x, y, jump):
+    while x < y:
+        yield x
+        x += jump
+
+def main():
+    rospy.init_node('lissajous_curve_publisher')
+    
+    path_pub = rospy.Publisher('lissajous_path', Path, queue_size=10)
+    path = Path()
+
+    path.header.frame_id = rospy.get_param('~output_frame', 'map')
+    resolution  = rospy.get_param('resolution', 0.01)
+    x_angular_freq = rospy.get_param('~x_angular_freq', 3.0)
+    y_angular_freq = rospy.get_param('~y_angular_freq', 2.0)
+    z_angular_freq = rospy.get_param('~z_angular_freq', 4.0)
+
+    x_angular_phase = rospy.get_param('~x_angular_phase', 0.0)
+    y_angular_phase = rospy.get_param('~y_angular_phase', math.pi / 2.0)
+    z_angular_phase = rospy.get_param('~z_angular_phase', 0.0)
+
+    x_amplitude = rospy.get_param('~x_amplitude', 2.0)
+    y_amplitude = rospy.get_param('~y_amplitude', 2.0)
+    z_amplitude = rospy.get_param('~z_amplitude', 2.0)
+    
+    for t in frange(0, 2.0 * math.pi, resolution):
+        x = x_amplitude * math.cos(x_angular_freq * t + x_angular_phase)
+        y = y_amplitude * math.cos(y_angular_freq * t + y_angular_phase)
+        z = z_amplitude * math.cos(z_angular_freq * t + z_angular_phase) + z_amplitude
+        
+        pose = PoseStamped()
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+        q = tf.transformations.quaternion_from_euler(0, 0, y)
+        pose.pose.orientation.x = q[0]
+        pose.pose.orientation.y = q[1]
+        pose.pose.orientation.z = q[2]
+        pose.pose.orientation.w = q[3]
+        path.poses.append(pose)
+    
+    r = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        path.header.stamp = rospy.get_rostime()
+        path_pub.publish(path)
+        r.sleep()
+    
+if __name__ == '__main__':
+    main()
+
