@@ -6,6 +6,24 @@
 
 fulanghua_navigation provides mobile robot navigation packages on ros.
 
+### [Waypoints Navigation](fulanghua_waypoints_nav/)
+
+TODO
+
+### [Static Path Publisher](fulanghua_static_path_publisher/)
+
+![](docs/lissajous_curve.png)
+
+![](docs/astroid_curve.png)
+
+### [Pose Estimator with EKF for a ground robot](fulanghua_ekf_2d/)
+
+TODO
+
+### [Path Evaluator](fulanghua_evaluator/)
+
+TODO
+
 ## Requirements
 
 Install dependencies (listed in the package.xml and CMakeLists.txt file) using rosdep:
