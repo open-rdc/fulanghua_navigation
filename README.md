@@ -22,7 +22,9 @@ fulanghua_navigation provides mobile robot navigation tools on ros.
 
 Install dependencies (listed in the package.xml and CMakeLists.txt file) using rosdep:
 
-rosdep install fulanghua_navigation
+```sh
+$ rosdep install fulanghua_navigation
+```
 
 ## Bugs
 
