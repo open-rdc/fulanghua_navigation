@@ -12,7 +12,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <run_depend>fulanghua_ekf_2d</run_depend>
-  <run_depend>fulanghua_evaluator</run_depend>
   <run_depend>fulanghua_srvs</run_depend>
   <run_depend>fulanghua_waypoints_nav</run_depend>
   <run_depend>fulanghua_static_path_publisher</run_depend>

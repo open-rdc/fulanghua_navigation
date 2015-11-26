@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>fulanghua_ekf_2d</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>The fulanghua_ekf_2d package</description>
 
   <maintainer email="d.maekawa@rapyuta-robotics.com">Daiki Maekawa</maintainer>

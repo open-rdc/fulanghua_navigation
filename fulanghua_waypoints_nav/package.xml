@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>fulanghua_waypoints_nav</name>
-  <version>0.1.3</version>
+  <version>0.0.1</version>
   <description>The fulanghua_waypoints package</description>
 
   <maintainer email="method_aspect_card@yahoo.co.jp">Daiki Maekawa</maintainer>
