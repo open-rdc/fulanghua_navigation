@@ -16,7 +16,7 @@ TODO
 
 ![](docs/astroid_curve.png)
 
-### [Pose Estimator with EKF for a ground robot](fulanghua_ekf_2d/)
+### [Pose Estimation by using EKF for a ground vehicle](fulanghua_ekf_2d/)
 
 TODO
 
