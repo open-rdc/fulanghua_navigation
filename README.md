@@ -4,7 +4,7 @@
 
 ## About
 
-fulanghua_navigation provides mobile robot navigation packages on ros.
+fulanghua_navigation provides mobile robot navigation tools on ros.
 
 ### [Waypoints Navigation](fulanghua_waypoints_nav/)
 
