@@ -16,9 +16,6 @@ if __name__ == '__main__':
     target_frame = rospy.get_param('~target_frame')
     
     rate = rospy.Rate(10.0)
-    #ref_poses = []
-    #target_poses = []
-    #sample_num = 0
     
     means = [1.0] * 3
     errors = [1.0] * 3
@@ -36,26 +33,16 @@ if __name__ == '__main__':
             rate.sleep()
             continue
         
-        #alpha = 1 / (sample_num + 1)
-        
         errors[0] = target_trans.transform.translation.x - ref_trans.transform.translation.x
         errors[1] = target_trans.transform.translation.y - ref_trans.transform.translation.y
         errors[2] = target_trans.transform.translation.z - ref_trans.transform.translation.z
-        
-        print "error = " + str(errors[0])
 
         for i in range(3):
             sigma2_xyz[i] = (1 - alpha) * sigma2_xyz[i] + alpha * (1 - alpha) * (errors[i] - means[i]) ** 2
             means[i] = (1 - alpha) * means[i] + alpha * errors[i]
 
             print "mean[%d] = %.8f" % (i, means[i])
-            sigma = math.sqrt(sigma2_xyz[i])
             print "sigma[%d] = %.8f" % (i, math.sqrt(sigma2_xyz[i]))
-
-            #sigma2_xyz[i] = (sigma2_xyz[i] - means[i]) ** 2 / sample_num
-            #print "sigma[%d] = %.2f" % (i, math.sqrt(sigma2_xyz[i]))
-            
-        #sample_num += 1
 
         """
         ref_pose = geometry_msgs.msg.PoseStamped()
@@ -70,9 +57,6 @@ if __name__ == '__main__':
         target_pose.pose.position = target_trans.translation
         target_pose.pose.orientation = target_trans.rotation
         """
-
-        #ref_poses.append(ref_pose)
-        #target_poses.append(target_pose)
 
         rate.sleep()
 
