@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+import rospy
+
+import math
+import tf2_ros
+import geometry_msgs.msg
+
+if __name__ == '__main__':
+    rospy.init_node('pose_comparator')
+
+    tf_buffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tf_buffer)
+
+    base_frame = rospy.get_param('~base_frame', 'world')
+    ref_frame = rospy.get_param('~reference_frame')
+    target_frame = rospy.get_param('~target_frame')
+    
+    rate = rospy.Rate(10.0)
+    #ref_poses = []
+    #target_poses = []
+    #sample_num = 0
+    
+    means = [1.0] * 3
+    errors = [1.0] * 3
+    sigma2_xyz = [1.0] * 3
+    alpha = 0.1
+    
+    while not rospy.is_shutdown():
+        stamp = rospy.Time()
+
+        try:
+            ref_trans = tf_buffer.lookup_transform(ref_frame, base_frame, stamp)
+            target_trans = tf_buffer.lookup_transform(target_frame, base_frame, stamp)
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            rate.sleep()
+            continue
+        
+        #alpha = 1 / (sample_num + 1)
+        
+        errors[0] = target_trans.transform.translation.x - ref_trans.transform.translation.x
+        errors[1] = target_trans.transform.translation.y - ref_trans.transform.translation.y
+        errors[2] = target_trans.transform.translation.z - ref_trans.transform.translation.z
+        
+        print "error = " + str(errors[0])
+
+        for i in range(3):
+            sigma2_xyz[i] = (1 - alpha) * sigma2_xyz[i] + alpha * (1 - alpha) * (errors[i] - means[i]) ** 2
+            means[i] = (1 - alpha) * means[i] + alpha * errors[i]
+
+            print "mean[%d] = %.8f" % (i, means[i])
+            sigma = math.sqrt(sigma2_xyz[i])
+            print "sigma[%d] = %.8f" % (i, math.sqrt(sigma2_xyz[i]))
+
+            #sigma2_xyz[i] = (sigma2_xyz[i] - means[i]) ** 2 / sample_num
+            #print "sigma[%d] = %.2f" % (i, math.sqrt(sigma2_xyz[i]))
+            
+        #sample_num += 1
+
+        """
+        ref_pose = geometry_msgs.msg.PoseStamped()
+        target_pose = geometry_msgs.msg.PoseStamped()
+        ref_pose.header.stamp = stamp
+        ref_pose.header.frame_id = base_frame
+        target_pose.header.stamp = stamp
+        target_pose.header.frame_id = base_frame
+
+        ref_pose.pose.position = ref_trans.translation
+        ref_pose.pose.orientation = ref_trans.rotation
+        target_pose.pose.position = target_trans.translation
+        target_pose.pose.orientation = target_trans.rotation
+        """
+
+        #ref_poses.append(ref_pose)
+        #target_poses.append(target_pose)
+
+        rate.sleep()
+
