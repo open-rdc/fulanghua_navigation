@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+import rospy
+
+import math
+import tf2_ros
+import geometry_msgs.msg
+
+if __name__ == '__main__':
+    rospy.init_node('pose_comparator')
+
+    tf_buffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tf_buffer)
+
+    base_frame = rospy.get_param('~base_frame', 'world')
+    ref_frame = rospy.get_param('~reference_frame')
+    target_frame = rospy.get_param('~target_frame')
+
+    ref_pose_pub = rospy.Publisher('ref_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
+    target_pose_pub = rospy.Publisher('target_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
+    
+    rate = rospy.Rate(10.0)
+    
+    means = [0.0] * 3
+    errors = [0.0] * 3
+    sigma2_xyz = [0.0] * 3
+    alpha = 0.1
+    
+    while not rospy.is_shutdown():
+        try:
+            ref_trans = tf_buffer.lookup_transform(ref_frame, base_frame, rospy.Time())
+            target_trans = tf_buffer.lookup_transform(target_frame, base_frame, rospy.Time())
+
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            rate.sleep()
+            continue
+        
+        errors[0] = target_trans.transform.translation.x - ref_trans.transform.translation.x
+        errors[1] = target_trans.transform.translation.y - ref_trans.transform.translation.y
+        errors[2] = target_trans.transform.translation.z - ref_trans.transform.translation.z
+
+        for i in range(3):
+            sigma2_xyz[i] = (1 - alpha) * sigma2_xyz[i] + alpha * (1 - alpha) * (errors[i] - means[i]) ** 2
+            means[i] = (1 - alpha) * means[i] + alpha * errors[i]
+
+            print "mean[%d] = %.8f" % (i, means[i])
+            print "sigma[%d] = %.8f" % (i, math.sqrt(sigma2_xyz[i]))
+
+        stamp = rospy.get_rostime()
+        ref_pose = geometry_msgs.msg.PoseStamped()
+        target_pose = geometry_msgs.msg.PoseStamped()
+        ref_pose.header.stamp = stamp
+        ref_pose.header.frame_id = base_frame
+        target_pose.header.stamp = stamp
+        target_pose.header.frame_id = base_frame
+
+        ref_pose.pose.position = ref_trans.transform.translation
+        ref_pose.pose.orientation = ref_trans.transform.rotation
+        target_pose.pose.position = target_trans.transform.translation
+        target_pose.pose.orientation = target_trans.transform.rotation
+        
+        ref_pose_pub.publish(ref_pose)
+        target_pose_pub.publish(target_pose)
+
+        rate.sleep()
+
