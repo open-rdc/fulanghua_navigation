@@ -18,7 +18,7 @@ fulanghua_navigation provides mobile robot navigation tools on ros.
 
 [![rviz](http://img.youtube.com/vi/IPj6jmYQvAI/0.jpg)](https://www.youtube.com/watch?v=IPj6jmYQvAI)
 
-### [Path Evaluator](fulanghua_evaluator/)
+### [Evaluation tools](fulanghua_evaluator/)
 
 ## Requirements
 
