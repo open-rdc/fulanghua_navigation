@@ -47,8 +47,8 @@ if __name__ == '__main__':
     update_rate = rospy.get_param('~update_rate', 10.0)
     alpha = rospy.get_param('~alpha', 0.1)
 
-    ref_pose_pub = rospy.Publisher('ref_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
-    target_pose_pub = rospy.Publisher('target_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
+    ref_pose_pub = rospy.Publisher('ref_pose', geometry_msgs.msg.PoseStamped, queue_size=10)
+    target_pose_pub = rospy.Publisher('target_pose', geometry_msgs.msg.PoseStamped, queue_size=10)
     
     rate = rospy.Rate(update_rate)
     
