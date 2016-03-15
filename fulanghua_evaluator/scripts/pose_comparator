@@ -21,7 +21,6 @@ if __name__ == '__main__':
     rate = rospy.Rate(10.0)
     
     means = [0.0] * 3
-    errors = [0.0] * 3
     sigma2_xyz = [0.0] * 3
     alpha = 0.1
     
@@ -34,9 +33,9 @@ if __name__ == '__main__':
             rate.sleep()
             continue
         
-        errors[0] = target_trans.transform.translation.x - ref_trans.transform.translation.x
-        errors[1] = target_trans.transform.translation.y - ref_trans.transform.translation.y
-        errors[2] = target_trans.transform.translation.z - ref_trans.transform.translation.z
+        errors = (target_trans.transform.translation.x - ref_trans.transform.translation.x,
+                  target_trans.transform.translation.y - ref_trans.transform.translation.y,
+                  target_trans.transform.translation.z - ref_trans.transform.translation.z)
 
         for i in range(3):
             sigma2_xyz[i] = (1 - alpha) * sigma2_xyz[i] + alpha * (1 - alpha) * (errors[i] - means[i]) ** 2
