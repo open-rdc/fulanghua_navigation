@@ -15,6 +15,7 @@ if __name__ == '__main__':
     ref_frame = rospy.get_param('~reference_frame')
     target_frame = rospy.get_param('~target_frame')
     update_rate = rospy.get_param('~update_rate', 10.0)
+    alpha = rospy.get_param('~alpha', 0.1)
 
     ref_pose_pub = rospy.Publisher('ref_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
     target_pose_pub = rospy.Publisher('target_pose_pub', geometry_msgs.msg.PoseStamped, queue_size=10)
@@ -23,7 +24,6 @@ if __name__ == '__main__':
     
     means = [0.0] * 3
     sigma2_xyz = [0.0] * 3
-    alpha = 0.1
     
     while not rospy.is_shutdown():
         try:
