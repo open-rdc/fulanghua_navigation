@@ -3,11 +3,12 @@
     <arg name="target_frame"/>
     <arg name="base_frame" default="world"/>
     
-    <node name="pose_comparator" pkg="fulanghua_evaluator" type="pose_comparator">
+    <node name="pose_comparator" pkg="fulanghua_evaluator" type="pose_comparator" output="screen">
         <param name="reference_frame" value="$(arg reference_frame)"/>
         <param name="target_frame" value="$(arg target_frame)"/>
         <param name="base_frame" value="$(arg base_frame)"/>
     </node>
     
     <node name="plot_poses" pkg="rqt_plot" type="rqt_plot" args="/target_pose/pose/position/x:y:z /ref_pose/pose/position/x:y:z"/>
+    <node name="rviz_poses" pkg="rviz" type="rviz" args="-d $(find fulanghua_evaluator)/rviz_cfg/poses.rviz"/>
 </launch>
