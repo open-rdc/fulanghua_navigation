@@ -1,0 +1,13 @@
+<launch>
+    <arg name="reference_frame"/>
+    <arg name="target_frame"/>
+    <arg name="base_frame" default="world"/>
+    
+    <node name="pose_comparator" pkg="fulanghua_evaluator" type="pose_comparator">
+        <param name="reference_frame" value="$(arg reference_frame)"/>
+        <param name="target_frame" value="$(arg target_frame)"/>
+        <param name="base_frame" value="$(arg base_frame)"/>
+    </node>
+    
+    <node name="plot_poses" pkg="rqt_plot" type="rqt_plot" args="/target_pose/pose/position/x:y:z /ref_pose/pose/position/x:y:z"/>
+</launch>
