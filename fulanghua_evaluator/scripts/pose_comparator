@@ -63,7 +63,7 @@ if __name__ == '__main__':
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rate.sleep()
             continue
-        
+
         errors = (target_trans.transform.translation.x - ref_trans.transform.translation.x,
                   target_trans.transform.translation.y - ref_trans.transform.translation.y,
                   target_trans.transform.translation.z - ref_trans.transform.translation.z)
@@ -71,9 +71,10 @@ if __name__ == '__main__':
         for i in range(3):
             sigma2_xyz[i] = (1 - alpha) * sigma2_xyz[i] + alpha * (1 - alpha) * (errors[i] - means[i]) ** 2
             means[i] = (1 - alpha) * means[i] + alpha * errors[i]
-
-            print "mean[%d] = %.8f" % (i, means[i])
-            print "sigma[%d] = %.8f" % (i, math.sqrt(sigma2_xyz[i]))
+        
+        print "RESULTS : for [%s to %s] and [%s to %s]"  % (base_frame, ref_frame, base_frame, target_frame)
+        print "mean[x, y, z] = (%.4f, %.4f, %.4f)" % (means[0], means[1], means[2])
+        print "stddev[x, y, z] = (%.4f, %.4f, %.4f)" % (math.sqrt(sigma2_xyz[0]), math.sqrt(sigma2_xyz[1]), math.sqrt(sigma2_xyz[2]))
 
         stamp = rospy.get_rostime()
         ref_pose = geometry_msgs.msg.PoseStamped()
