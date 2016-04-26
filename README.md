@@ -16,8 +16,6 @@ fulanghua_navigation provides mobile robot navigation tools on ros.
 
 ### [Pose Estimation by using EKF for a ground vehicle](fulanghua_ekf_2d/)
 
-[![rviz](http://img.youtube.com/vi/IPj6jmYQvAI/0.jpg)](https://www.youtube.com/watch?v=IPj6jmYQvAI)
-
 ### [Evaluation Tools](fulanghua_evaluator/)
 
 ## Requirements
@@ -36,6 +34,6 @@ If you find a bug please let me know by opening an issue at [here](https://githu
 
 ![BSD](http://img.shields.io/badge/license-BSD-green.svg)
 
-Copyright (c) 2015, Daiki Maekawa and Chiba Institute of Technology.
+Copyright (c) 2014, Daiki Maekawa and Chiba Institute of Technology.
 
 See LICENSE for more info.
