@@ -28,12 +28,12 @@ $ rosdep install fulanghua_navigation
 
 ## Bugs
 
-If you find a bug please let me know by opening an issue at [here](https://github.com/DaikiMaekawa/fulanghua_navigation/issues).
+If you find a bug please let me know by opening an issue at [here](https://github.com/open-rdc/fulanghua_navigation/issues).
 
 ## License 
 
 ![BSD](http://img.shields.io/badge/license-BSD-green.svg)
 
-Copyright (c) 2014, Daiki Maekawa and Chiba Institute of Technology.
+Copyright (c) 2013-2014, Daiki Maekawa and Chiba Institute of Technology.
 
 See LICENSE for more info.
