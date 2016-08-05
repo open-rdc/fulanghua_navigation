@@ -1,4 +1,4 @@
-# fulanghua_navigation [![Build Status](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/DaikiMaekawa/fulanghua_navigation)
+# fulanghua_navigation [![Build Status](https://travis-ci.org/open-rdc/fulanghua_navigation.svg?branch=indigo-devel)](https://travis-ci.org/open-rdc/fulanghua_navigation)
 
 ![](docs/fulanghua_icon.jpg)
 
