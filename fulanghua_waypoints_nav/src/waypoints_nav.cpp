@@ -69,7 +69,8 @@ public:
         has_activate_(false),
         move_base_action_("move_base", true),
         rate_(10),
-        last_moved_time_(0)
+        last_moved_time_(0),
+        dist_err_(0.8)
     {
         while((move_base_action_.waitForServer(ros::Duration(1.0)) == false) && (ros::ok() == true))
         {
@@ -94,6 +95,8 @@ public:
         } else {
             ROS_ERROR("waypoints file doesn't have name");
         }
+
+        private_nh.param("dist_err", dist_err_, dist_err_);
         
         ros::NodeHandle nh;
         start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
@@ -373,7 +376,7 @@ public:
 
                     startNavigationGL(goal_pose);
                     double start_nav_time = ros::Time::now().toSec();
-                    while(!onNavigationPoint(goal_pose.position)) {
+                    while(!onNavigationPoint(goal_pose.position, dist_err_)) {
                         if(!has_activate_)
                             throw SwitchRunningStatus();
                         
@@ -417,7 +420,7 @@ private:
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher marker_pub_;
     ros::ServiceClient clear_costmaps_srv_;
-    double last_moved_time_;
+    double last_moved_time_, dist_err_;
 
 };
 
@@ -428,3 +431,4 @@ int main(int argc, char *argv[]){
 
     return 0;
 }
+
