@@ -91,6 +91,8 @@ public:
             if(!readFile(filename)) {
                 ROS_ERROR("Failed loading waypoints file");
             } else {
+                last_waypoint_ = waypoints_.poses.end()-2;
+                finish_pose_ = waypoints_.poses.end()-1;
                 computeWpOrientation();
             }
             current_waypoint_ = waypoints_.poses.begin();
@@ -139,7 +141,7 @@ public:
         
         ///< @todo calculating metric with request orientation
         double min_dist = std::numeric_limits<double>::max();
-        for(std::vector<geometry_msgs::Pose>::iterator it = current_waypoint_; it != waypoints_.poses.end()-1; it++) {
+        for(std::vector<geometry_msgs::Pose>::iterator it = current_waypoint_; it != finish_pose_; it++) {
             double dist = hypot(it->position.x - request.pose.position.x, it->position.y - request.pose.position.y);
             if(dist < min_dist) {
                 min_dist = dist;
@@ -257,7 +259,7 @@ public:
     }
 
    void computeWpOrientation(){
-        for(std::vector<geometry_msgs::Pose>::iterator it = waypoints_.poses.begin(); it != waypoints_.poses.end()-1; it++) {
+        for(std::vector<geometry_msgs::Pose>::iterator it = waypoints_.poses.begin(); it != finish_pose_; it++) {
             double goal_direction = atan2((it+1)->position.y - (it)->position.y,
                                           (it+1)->position.x - (it)->position.x);
             (it)->orientation = tf::createQuaternionMsgFromYaw(goal_direction);
@@ -343,7 +345,7 @@ public:
         while(ros::ok()){
             try {
                 if(has_activate_) {
-                    if(current_waypoint_ == waypoints_.poses.end()-2) {
+                    if(current_waypoint_ == last_waypoint_) {
                         ROS_INFO("prepare finish pose");
                     } else {
                         ROS_INFO("calculate waypoint direction");
@@ -370,7 +372,7 @@ public:
                     }
 
                     current_waypoint_++;
-                    if(current_waypoint_ == waypoints_.poses.end()-1) {
+                    if(current_waypoint_ == finish_pose_) {
                         startNavigationGL(*current_waypoint_);
                         while(!navigationFinished() && ros::ok()) sleep();
                         has_activate_ = false;
@@ -388,7 +390,8 @@ private:
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_action_;
     geometry_msgs::PoseArray waypoints_;
     std::vector<geometry_msgs::Pose>::iterator current_waypoint_;
-    geometry_msgs::Pose finish_pose_;
+    std::vector<geometry_msgs::Pose>::iterator last_waypoint_;
+    std::vector<geometry_msgs::Pose>::iterator finish_pose_;
     bool has_activate_;
     std::string robot_frame_, world_frame_;
     tf::TransformListener tf_listener_;
