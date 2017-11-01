@@ -163,10 +163,18 @@ public:
         
         //move_base_action_.cancelAllGoals();
         startNavigationGL(request.pose);
-        while(!navigationFinished() && ros::ok()) {
+        bool isNavigationFinished = false;
+        while(!isNavigationFinished && ros::ok()) {
+            actionlib::SimpleClientGoalState state = move_base_action_.getState();
+            if(state == actionlib::SimpleClientGoalState::SUCCEEDED){
+                isNavigationFinished = true;
+                response.status = true;
+            }else if(state == actionlib::SimpleClientGoalState::ABORTED){
+                isNavigationFinished = true;
+                response.status = false;
+            }
             sleep();
         }
-        response.status = true;
         has_activate_ = false;
 
         return true;
