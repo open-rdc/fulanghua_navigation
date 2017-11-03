@@ -363,6 +363,7 @@ public:
                     }
 
                     startNavigationGL(*current_waypoint_);
+                    int resend_goal = 0;
                     double start_nav_time = ros::Time::now().toSec();
                     while(!onNavigationPoint(current_waypoint_->position, dist_err_)) {
                         if(!has_activate_)
@@ -374,6 +375,12 @@ public:
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
                             startNavigationGL(*current_waypoint_);
+                            resend_goal++;
+                            if(resend_goal == 3) {
+                                ROS_WARN("Skip waypoint.");
+                                current_waypoint_++;
+                                startNavigationGL(*current_waypoint_);
+                            }
                             start_nav_time = time;
                         }
                         sleep();
