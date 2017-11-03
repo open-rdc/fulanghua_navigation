@@ -370,6 +370,9 @@ public:
                         
                         double time = ros::Time::now().toSec();
                         if(time - start_nav_time > 10.0 && time - last_moved_time_ > 10.0) {
+                            if(move_base_action_.getState() == actionlib::SimpleClientGoalState::ABORTED) {
+                                current_waypoint_++;
+                            }
                             ROS_WARN("Resend the navigation goal.");
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
