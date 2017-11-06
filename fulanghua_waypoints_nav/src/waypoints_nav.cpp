@@ -70,7 +70,8 @@ public:
         move_base_action_("move_base", true),
         rate_(10),
         last_moved_time_(0),
-        dist_err_(0.8)
+        dist_err_(0.8),
+        skip_goal_th_(3)
     {
         while((move_base_action_.waitForServer(ros::Duration(1.0)) == false) && (ros::ok() == true))
         {
@@ -101,6 +102,7 @@ public:
         }
 
         private_nh.param("dist_err", dist_err_, dist_err_);
+        private_nh.param("skip_goal_th", skip_goal_th_, skip_goal_th_);
         
         ros::NodeHandle nh;
         start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
@@ -371,16 +373,15 @@ public:
                         
                         double time = ros::Time::now().toSec();
                         if(time - start_nav_time > 10.0 && time - last_moved_time_ > 10.0) {
-                            ROS_WARN("Resend the navigation goal.");
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
-                            startNavigationGL(*current_waypoint_);
-                            resend_goal++;
-                            if(resend_goal == 3) {
+                            if(resend_goal == skip_goal_th_) {
                                 ROS_WARN("Skip waypoint.");
                                 current_waypoint_++;
-                                startNavigationGL(*current_waypoint_);
                             }
+                            ROS_WARN("Resend the navigation goal.");
+                            startNavigationGL(*current_waypoint_);
+                            resend_goal++;
                             start_nav_time = time;
                         }
                         sleep();
@@ -416,6 +417,7 @@ private:
     ros::Publisher wp_pub_;
     ros::ServiceClient clear_costmaps_srv_;
     double last_moved_time_, dist_err_;
+    int skip_goal_th_;
 
 };
 
