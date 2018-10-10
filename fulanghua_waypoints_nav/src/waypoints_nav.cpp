@@ -40,7 +40,7 @@
 #include <tf/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <fulanghua_srvs/Pose.h>
-
+#include <fulanghua_srvs/suspend_nav.h>
 #include <yaml-cpp/yaml.h>
 
 #include <vector>
@@ -91,11 +91,16 @@ public:
             if(!readFile(filename)) {
                 ROS_ERROR("Failed loading waypoints file");
             } else {
+                suspend_pose1_ = waypoints_.poses.begin() + 2;
+                suspend_pose2_ = waypoints_.poses.end()-4;
+                suspend_pose3_ = waypoints_.poses.end()-3;
                 last_waypoint_ = waypoints_.poses.end()-2;
                 finish_pose_ = waypoints_.poses.end()-1;
+                
                 computeWpOrientation();
             }
             current_waypoint_ = waypoints_.poses.begin();
+            
         } else {
             ROS_ERROR("waypoints file doesn't have name");
         }
@@ -342,7 +347,6 @@ public:
         
         move_base_action_.sendGoal(move_base_goal);
     }
-
     
     void publishPoseArray(){
         waypoints_.header.stamp = ros::Time::now();
@@ -355,6 +359,21 @@ public:
                 if(has_activate_) {
                     if(current_waypoint_ == last_waypoint_) {
                         ROS_INFO("prepare finish pose");
+                    }if(current_waypoint_ == suspend_pose1_) {
+                        ROS_INFO("suspend waypoint1 direction");
+                        ROS_INFO_STREAM("goal_direction = " << current_waypoint_->orientation);
+                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->position.y);
+                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->position.y);
+                    }if(current_waypoint_ == suspend_pose2_) {
+                        ROS_INFO("suspend waypoint2 direction");
+                        ROS_INFO_STREAM("goal_direction = " << current_waypoint_->orientation);
+                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->position.y);
+                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->position.y);
+                    }if(current_waypoint_ == suspend_pose3_) {
+                        ROS_INFO("suspend waypoint3 direction");
+                        ROS_INFO_STREAM("goal_direction = " << current_waypoint_->orientation);
+                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->position.y);
+                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->position.y);
                     } else {
                         ROS_INFO("calculate waypoint direction");
                         ROS_INFO_STREAM("goal_direction = " << current_waypoint_->orientation);
@@ -364,7 +383,51 @@ public:
 
                     startNavigationGL(*current_waypoint_);
                     int resend_goal = 0;
+                    int near_suspend_flag = 0;
+                    int suspend_flag = 0;
+                    int resume_flag = 0;
                     double start_nav_time = ros::Time::now().toSec();
+                    int kaisu = 0;
+                    if(current_waypoint_ == suspend_pose1_ || current_waypoint_ == suspend_pose2_|| current_waypoint_ == suspend_pose3_){
+                        ROS_INFO("state:near_suspend_waypoint");
+                        near_suspend_flag = 1;
+                        while(near_suspend_flag == 1 ){
+                            if(onNavigationPoint(current_waypoint_->position, dist_err_)){
+                                ROS_INFO("state:suspend_waypoint");
+                                suspend_flag = 1;
+                                    while(suspend_flag == 1){
+                                        /*if(kaisu==0){
+                                            ROS_INFO("please input 1");
+                                            kaisu++;
+                                        }
+                                        scanf("%c",&resume_input);
+                                        if(resume_input=='1'){
+                                            resume_flag=1;
+                                        }if(resume_flag==1){*/
+                                        ros::NodeHandle nh;
+                                        ros::ServiceClient client = nh.serviceClient<fulanghua_srvs::suspend_nav>("suspend_nav");
+                                        fulanghua_srvs::suspend_nav srv;
+                                        if(kaisu==0){
+                                            ROS_INFO("send resume_input");
+                                            kaisu++;
+                                        }
+                                        if(!client.call(srv)&&kaisu==1){
+                                            ROS_INFO("Failed to call resume input");
+                                            kaisu++;
+                                        }
+                                        /*サービスから受け取ったresume_flagがtureかどうか*/
+                                        if(client.call(srv)&&kaisu==2){
+                                            ROS_INFO("call resume input");
+                                            ROS_INFO("state:resume");
+                                            suspend_flag=0;
+                                            near_suspend_flag=0;
+                                            kaisu = 0;
+                                        }
+                                        
+                                    }
+                            }
+                        }
+                    }
                     while(!onNavigationPoint(current_waypoint_->position, dist_err_)) {
                         if(!has_activate_)
                             throw SwitchRunningStatus();
@@ -385,8 +448,10 @@ public:
                         }
                         sleep();
                     }
+                    
 
                     current_waypoint_++;
+                    double start_suspend_time = ros::Time::now().toSec();
                     if(current_waypoint_ == finish_pose_) {
                         startNavigationGL(*current_waypoint_);
                         while(!navigationFinished() && ros::ok()) sleep();
@@ -405,6 +470,9 @@ private:
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_action_;
     geometry_msgs::PoseArray waypoints_;
     std::vector<geometry_msgs::Pose>::iterator current_waypoint_;
+    std::vector<geometry_msgs::Pose>::iterator suspend_pose1_;
+    std::vector<geometry_msgs::Pose>::iterator suspend_pose2_;
+    std::vector<geometry_msgs::Pose>::iterator suspend_pose3_;
     std::vector<geometry_msgs::Pose>::iterator last_waypoint_;
     std::vector<geometry_msgs::Pose>::iterator finish_pose_;
     bool has_activate_;
