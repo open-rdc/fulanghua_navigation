@@ -33,7 +33,7 @@ include_directories(
 
 add_executable(waypoints_saver src/waypoints_saver.cpp)
 add_executable(waypoints_nav src/waypoints_nav.cpp)
-
+add_executable(suspend_nav src/suspend_nav.cpp)
 add_dependencies(waypoints_nav ${fulanghua_srvs_EXPORTED_TARGETS})
 
 target_link_libraries(waypoints_saver
@@ -45,3 +45,7 @@ target_link_libraries(waypoints_nav
     ${yaml-cpp_LIBRARIES}
 )
 
+target_link_libraries(suspend_nav
+    ${catkin_LIBRARIES}
+#    ${yaml-cpp_LIBRARIES}
+)

@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
     FILES
     Pose.srv
+    suspend_nav.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
