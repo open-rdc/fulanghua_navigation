@@ -63,6 +63,20 @@ public:
     SwitchRunningStatus() : std::exception() { }
 };
 
+class new_pose
+{
+public:
+    geometry_msgs::Pose pose;
+    int lawn;
+};
+
+class new_waypoints
+{
+public:
+    std_msgs::Header header;
+    std::vector<new_pose> poses;
+};
+
 class WaypointsNavigation{
 public:
     WaypointsNavigation() :
@@ -141,8 +155,8 @@ public:
         
         ///< @todo calculating metric with request orientation
         double min_dist = std::numeric_limits<double>::max();
-        for(std::vector<geometry_msgs::Pose>::iterator it = current_waypoint_; it != finish_pose_; it++) {
-            double dist = hypot(it->position.x - request.pose.position.x, it->position.y - request.pose.position.y);
+        for(std::vector<new_pose>::iterator it = current_waypoint_; it != finish_pose_; it++) {
+            double dist = hypot(it->pose.position.x - request.pose.position.x, it->pose.position.y - request.pose.position.y);
             if(dist < min_dist) {
                 min_dist = dist;
                 current_waypoint_ = it;
@@ -218,13 +232,13 @@ public:
                 const YAML::Node *wp_node = node.FindValue("waypoints");
             #endif
 
-            geometry_msgs::Pose pose;
+            new_pose pose;
             if(wp_node != NULL){
                 for(int i=0; i < wp_node->size(); i++){
 
-                    (*wp_node)[i]["point"]["x"] >> pose.position.x;
-                    (*wp_node)[i]["point"]["y"] >> pose.position.y;
-                    (*wp_node)[i]["point"]["z"] >> pose.position.z;
+                    (*wp_node)[i]["point"]["x"] >> pose.pose.position.x;
+                    (*wp_node)[i]["point"]["y"] >> pose.pose.position.y;
+                    (*wp_node)[i]["point"]["z"] >> pose.pose.position.z;
 
                     waypoints_.poses.push_back(pose);
 
@@ -241,14 +255,14 @@ public:
             #endif
 
             if(fp_node != NULL){
-                (*fp_node)["pose"]["position"]["x"] >> pose.position.x;
-                (*fp_node)["pose"]["position"]["y"] >> pose.position.y;
-                (*fp_node)["pose"]["position"]["z"] >> pose.position.z;
+                (*fp_node)["pose"]["position"]["x"] >> pose.pose.position.x;
+                (*fp_node)["pose"]["position"]["y"] >> pose.pose.position.y;
+                (*fp_node)["pose"]["position"]["z"] >> pose.pose.position.z;
 
-                (*fp_node)["pose"]["orientation"]["x"] >> pose.orientation.x;
-                (*fp_node)["pose"]["orientation"]["y"] >> pose.orientation.y;
-                (*fp_node)["pose"]["orientation"]["z"] >> pose.orientation.z;
-                (*fp_node)["pose"]["orientation"]["w"] >> pose.orientation.w;
+                (*fp_node)["pose"]["orientation"]["x"] >> pose.pose.orientation.x;
+                (*fp_node)["pose"]["orientation"]["y"] >> pose.pose.orientation.y;
+                (*fp_node)["pose"]["orientation"]["z"] >> pose.pose.orientation.z;
+                (*fp_node)["pose"]["orientation"]["w"] >> pose.pose.orientation.w;
 
                 waypoints_.poses.push_back(pose);
 
@@ -267,10 +281,10 @@ public:
     }
 
    void computeWpOrientation(){
-        for(std::vector<geometry_msgs::Pose>::iterator it = waypoints_.poses.begin(); it != finish_pose_; it++) {
-            double goal_direction = atan2((it+1)->position.y - (it)->position.y,
-                                          (it+1)->position.x - (it)->position.x);
-            (it)->orientation = tf::createQuaternionMsgFromYaw(goal_direction);
+        for(std::vector<new_pose>::iterator it = waypoints_.poses.begin(); it != finish_pose_; it++) {
+            double goal_direction = atan2((it+1)->pose.position.y - (it)->pose.position.y,
+                                          (it+1)->pose.position.x - (it)->pose.position.x);
+            (it)->pose.orientation = tf::createQuaternionMsgFromYaw(goal_direction);
         }
         waypoints_.header.frame_id = world_frame_;
     }
@@ -346,7 +360,15 @@ public:
     
     void publishPoseArray(){
         waypoints_.header.stamp = ros::Time::now();
-        wp_pub_.publish(waypoints_);
+        geometry_msgs::PoseArray posearray;
+        geometry_msgs::Pose pose;
+        
+        for(std::vector<new_pose>::iterator it = waypoints_.poses.begin(); it != finish_pose_; it++) {
+            pose = it->pose;
+            posearray.poses.push_back(pose);
+        }
+        posearray.header.frame_id = waypoints_.header.frame_id;
+        wp_pub_.publish(posearray);
     }
 
     void run(){
@@ -357,15 +379,15 @@ public:
                         ROS_INFO("prepare finish pose");
                     } else {
                         ROS_INFO("calculate waypoint direction");
-                        ROS_INFO_STREAM("goal_direction = " << current_waypoint_->orientation);
-                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->position.y);
-                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->position.y);
+                        ROS_INFO_STREAM("goal_direction = " << current_waypoint_->pose.orientation);
+                        ROS_INFO_STREAM("current_waypoint_+1 " << (current_waypoint_+1)->pose.position.y);
+                        ROS_INFO_STREAM("current_waypoint_" << current_waypoint_->pose.position.y);
                     }
 
-                    startNavigationGL(*current_waypoint_);
+                    startNavigationGL(current_waypoint_->pose);
                     int resend_goal = 0;
                     double start_nav_time = ros::Time::now().toSec();
-                    while(!onNavigationPoint(current_waypoint_->position, dist_err_)) {
+                    while(!onNavigationPoint(current_waypoint_->pose.position, dist_err_)) {
                         if(!has_activate_)
                             throw SwitchRunningStatus();
                         
@@ -374,12 +396,12 @@ public:
                             ROS_WARN("Resend the navigation goal.");
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
-                            startNavigationGL(*current_waypoint_);
+                            startNavigationGL(current_waypoint_->pose);
                             resend_goal++;
                             if(resend_goal == 3) {
                                 ROS_WARN("Skip waypoint.");
                                 current_waypoint_++;
-                                startNavigationGL(*current_waypoint_);
+                                startNavigationGL(current_waypoint_->pose);
                             }
                             start_nav_time = time;
                         }
@@ -388,7 +410,7 @@ public:
 
                     current_waypoint_++;
                     if(current_waypoint_ == finish_pose_) {
-                        startNavigationGL(*current_waypoint_);
+                        startNavigationGL(current_waypoint_->pose);
                         while(!navigationFinished() && ros::ok()) sleep();
                         has_activate_ = false;
                     }
@@ -403,10 +425,10 @@ public:
 
 private:
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_action_;
-    geometry_msgs::PoseArray waypoints_;
-    std::vector<geometry_msgs::Pose>::iterator current_waypoint_;
-    std::vector<geometry_msgs::Pose>::iterator last_waypoint_;
-    std::vector<geometry_msgs::Pose>::iterator finish_pose_;
+    new_waypoints waypoints_;
+    std::vector<new_pose>::iterator current_waypoint_;
+    std::vector<new_pose>::iterator last_waypoint_;
+    std::vector<new_pose>::iterator finish_pose_;
     bool has_activate_;
     std::string robot_frame_, world_frame_;
     tf::TransformListener tf_listener_;
