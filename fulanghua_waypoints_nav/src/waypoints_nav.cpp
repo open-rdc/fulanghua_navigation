@@ -31,6 +31,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <std_srvs/Empty.h>
+#include <std_srvs/SetBool.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Twist.h>
@@ -123,6 +124,9 @@ public:
         cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         wp_pub_ = nh.advertise<geometry_msgs::PoseArray>("waypoints", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
+        lawn_costmap_srv_ = nh.serviceClient<std_srvs::SetBool>("lawn_costmap/activate");
+
+        for(int i=0;i<waypoints_.poses.size();i++)std::cout << "lawn" << i << ": " <<  waypoints_.poses[i].lawn << std::endl;
     }
 
     bool startNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response) {
@@ -239,6 +243,7 @@ public:
                     (*wp_node)[i]["point"]["x"] >> pose.pose.position.x;
                     (*wp_node)[i]["point"]["y"] >> pose.pose.position.y;
                     (*wp_node)[i]["point"]["z"] >> pose.pose.position.z;
+                    (*wp_node)[i]["point"]["lawn"] >> pose.lawn;
 
                     waypoints_.poses.push_back(pose);
 
@@ -372,6 +377,7 @@ public:
     }
 
     void run(){
+
         while(ros::ok()){
             try {
                 if(has_activate_) {
@@ -385,6 +391,12 @@ public:
                     }
 
                     startNavigationGL(current_waypoint_->pose);
+
+                    std_srvs::SetBool srv;
+                    srv.request.data = current_waypoint_->lawn;
+                    lawn_costmap_srv_.call(srv);
+
+
                     int resend_goal = 0;
                     double start_nav_time = ros::Time::now().toSec();
                     while(!onNavigationPoint(current_waypoint_->pose.position, dist_err_)) {
@@ -397,11 +409,22 @@ public:
                             std_srvs::Empty empty;
                             clear_costmaps_srv_.call(empty);
                             startNavigationGL(current_waypoint_->pose);
+
+                            std_srvs::SetBool srv;
+                            srv.request.data = current_waypoint_->lawn;
+                            lawn_costmap_srv_.call(srv);
+
                             resend_goal++;
                             if(resend_goal == 3) {
                                 ROS_WARN("Skip waypoint.");
                                 current_waypoint_++;
                                 startNavigationGL(current_waypoint_->pose);
+
+                                std_srvs::SetBool srv;
+                                srv.request.data = current_waypoint_->lawn;
+                                lawn_costmap_srv_.call(srv);
+
+
                             }
                             start_nav_time = time;
                         }
@@ -437,6 +460,7 @@ private:
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher wp_pub_;
     ros::ServiceClient clear_costmaps_srv_;
+    ros::ServiceClient lawn_costmap_srv_;
     double last_moved_time_, dist_err_;
 
 };
