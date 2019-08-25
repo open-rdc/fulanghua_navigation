@@ -95,6 +95,7 @@ public:
             ofs << "        x: " << waypoints_[i].point.x << std::endl;
             ofs << "        y: " << waypoints_[i].point.y << std::endl;
             ofs << "        z: " << waypoints_[i].point.z << std::endl;
+            ofs << "        lawn: " << 0 << std::endl;
         }
         
         ofs << "finish_pose:"           << std::endl;
