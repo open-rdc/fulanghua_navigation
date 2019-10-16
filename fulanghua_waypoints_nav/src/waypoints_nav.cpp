@@ -78,8 +78,8 @@ public:
         }
         
         ros::NodeHandle private_nh("~");
-        private_nh.param("robot_frame", robot_frame_, std::string("/base_link"));
-        private_nh.param("world_frame", world_frame_, std::string("/map"));
+        private_nh.param("robot_frame", robot_frame_, std::string("base_link"));
+        private_nh.param("world_frame", world_frame_, std::string("map"));
         
         double max_update_rate;
         private_nh.param("max_update_rate", max_update_rate, 10.0);

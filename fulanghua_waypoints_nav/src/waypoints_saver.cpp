@@ -52,8 +52,8 @@ public:
         ros::NodeHandle private_nh("~");
         private_nh.param("filename", filename_, filename_);
         private_nh.param("save_joy_button", save_joy_button_, 0);
-        private_nh.param("robot_frame", robot_frame_, std::string("/base_link"));
-        private_nh.param("world_frame", world_frame_, std::string("/map"));
+        private_nh.param("robot_frame", robot_frame_, std::string("base_link"));
+        private_nh.param("world_frame", world_frame_, std::string("map"));
     }
 
     void waypointsJoyCallback(const sensor_msgs::Joy &msg){
