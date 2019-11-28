@@ -80,6 +80,7 @@ public:
         ros::NodeHandle private_nh("~");
         private_nh.param("robot_frame", robot_frame_, std::string("/base_link"));
         private_nh.param("world_frame", world_frame_, std::string("/map"));
+        private_nh.param("cmd_vel_topic_name", cmd_vel_topic_name_, std::string("mobile_base_controller/cmd_vel"));
         
         double max_update_rate;
         private_nh.param("max_update_rate", max_update_rate, 10.0);
@@ -106,7 +107,7 @@ public:
         start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
         suspend_server_ = nh.advertiseService("suspend_wp_pose", &WaypointsNavigation::suspendPoseCallback, this);
         resume_server_ = nh.advertiseService("resume_wp_pose", &WaypointsNavigation::resumePoseCallback, this);
-        cmd_vel_sub_ = nh.subscribe("mobile_base_controller/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
+        cmd_vel_sub_ = nh.subscribe(cmd_vel_topic_name_, 1, &WaypointsNavigation::cmdVelCallback, this);
         wp_pub_ = nh.advertise<geometry_msgs::PoseArray>("waypoints", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
     }
@@ -408,7 +409,7 @@ private:
     std::vector<geometry_msgs::Pose>::iterator last_waypoint_;
     std::vector<geometry_msgs::Pose>::iterator finish_pose_;
     bool has_activate_;
-    std::string robot_frame_, world_frame_;
+    std::string robot_frame_, world_frame_, cmd_vel_topic_name_;
     tf::TransformListener tf_listener_;
     ros::Rate rate_;
     ros::ServiceServer start_server_, suspend_server_, resume_server_;
