@@ -106,7 +106,7 @@ public:
         start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
         suspend_server_ = nh.advertiseService("suspend_wp_pose", &WaypointsNavigation::suspendPoseCallback, this);
         resume_server_ = nh.advertiseService("resume_wp_pose", &WaypointsNavigation::resumePoseCallback, this);
-        cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
+        cmd_vel_sub_ = nh.subscribe("mobile_base_controller/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         wp_pub_ = nh.advertise<geometry_msgs::PoseArray>("waypoints", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
     }
