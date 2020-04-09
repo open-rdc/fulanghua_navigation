@@ -78,8 +78,8 @@ public:
         }
         
         ros::NodeHandle private_nh("~");
-        private_nh.param("robot_frame", robot_frame_, std::string("/base_link"));
-        private_nh.param("world_frame", world_frame_, std::string("/map"));
+        private_nh.param("robot_frame", robot_frame_, std::string("base_link"));
+        private_nh.param("world_frame", world_frame_, std::string("map"));
         
         double max_update_rate;
         private_nh.param("max_update_rate", max_update_rate, 10.0);
@@ -104,8 +104,12 @@ public:
         
         ros::NodeHandle nh;
         start_server_ = nh.advertiseService("start_wp_nav", &WaypointsNavigation::startNavigationCallback, this);
+        pause_server_ = nh.advertiseService("pause_wp_nav", &WaypointsNavigation::pauseNavigationCallback,this);
+        unpause_server_ = nh.advertiseService("unpause_wp_nav", &WaypointsNavigation::unpauseNavigationCallback,this);
+        stop_server_ = nh.advertiseService("stop_wp_nav", &WaypointsNavigation::pauseNavigationCallback,this);
         suspend_server_ = nh.advertiseService("suspend_wp_pose", &WaypointsNavigation::suspendPoseCallback, this);
         resume_server_ = nh.advertiseService("resume_wp_pose", &WaypointsNavigation::resumePoseCallback, this);
+        search_server_ = nh.advertiseService("near_wp_nav",&WaypointsNavigation::searchPoseCallback, this);
         cmd_vel_sub_ = nh.subscribe("icart_mini/cmd_vel", 1, &WaypointsNavigation::cmdVelCallback, this);
         wp_pub_ = nh.advertise<geometry_msgs::PoseArray>("waypoints", 10);
         clear_costmaps_srv_ = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
@@ -127,6 +131,34 @@ public:
         has_activate_ = true;
         response.success = true;
         return true;
+    }
+
+    bool pauseNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response){
+         if(!has_activate_) {
+            ROS_WARN("Navigation is already pause");
+            response.success = false;
+            return false;
+        }
+        
+        has_activate_ = false;
+        response.success = true;
+        return true;
+    }
+
+    bool unpauseNavigationCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response){
+        if(has_activate_){
+            ROS_WARN("Navigation is already active");
+            response.success = false;
+        }
+
+        has_activate_ = true;
+        response.success = true;
+        return true;
+    }
+
+    void stopNavigationCallback(std_srvs::Empty::Request &request, std_srvs::Empty::Response &response){
+        has_activate_ = false;
+        move_base_action_.cancelAllGoals();
     }
 
     bool resumePoseCallback(fulanghua_srvs::Pose::Request &request, fulanghua_srvs::Pose::Response &response) {
@@ -176,6 +208,32 @@ public:
             sleep();
         }
         has_activate_ = false;
+
+        return true;
+    }
+
+    bool searchPoseCallback(std_srvs::Trigger::Request &request, std_srvs::Trigger::Response &response){
+        
+        if(has_activate_) {
+            response.success = false;
+            return false;
+        }
+        
+        tf::StampedTransform robot_gl = getRobotPosGL();
+        std_srvs::Empty empty;
+        clear_costmaps_srv_.call(empty);
+
+        double min_dist = std::numeric_limits<double>::max();
+        for(std::vector<geometry_msgs::Pose>::iterator it = current_waypoint_; it != finish_pose_; it++) {
+            double dist = hypot(it->position.x - robot_gl.getOrigin().x(), it->position.y - robot_gl.getOrigin().y());
+            if(dist < min_dist) {
+                min_dist = dist;
+                current_waypoint_ = it;
+            }
+        }
+        
+        response.success = true;
+        has_activate_ = true;
 
         return true;
     }
@@ -404,6 +462,7 @@ public:
 private:
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_action_;
     geometry_msgs::PoseArray waypoints_;
+    visualization_msgs::MarkerArray marker_;
     std::vector<geometry_msgs::Pose>::iterator current_waypoint_;
     std::vector<geometry_msgs::Pose>::iterator last_waypoint_;
     std::vector<geometry_msgs::Pose>::iterator finish_pose_;
@@ -411,7 +470,7 @@ private:
     std::string robot_frame_, world_frame_;
     tf::TransformListener tf_listener_;
     ros::Rate rate_;
-    ros::ServiceServer start_server_, suspend_server_, resume_server_;
+    ros::ServiceServer start_server_, pause_server_, unpause_server_, stop_server_, suspend_server_, resume_server_ ,search_server_;
     ros::Subscriber cmd_vel_sub_;
     ros::Publisher wp_pub_;
     ros::ServiceClient clear_costmaps_srv_;
