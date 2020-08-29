@@ -221,14 +221,16 @@ public:
 
             geometry_msgs::Pose pose;
             if(wp_node != NULL){
-                for(int i=0; i < wp_node->size(); i++){
+                for(int j = 0; j < 100; j ++){
+                    for(int i=0; i < wp_node->size(); i++){
 
-                    (*wp_node)[i]["point"]["x"] >> pose.position.x;
-                    (*wp_node)[i]["point"]["y"] >> pose.position.y;
-                    (*wp_node)[i]["point"]["z"] >> pose.position.z;
+                        (*wp_node)[i]["point"]["x"] >> pose.position.x;
+                        (*wp_node)[i]["point"]["y"] >> pose.position.y;
+                        (*wp_node)[i]["point"]["z"] >> pose.position.z;
 
-                    waypoints_.poses.push_back(pose);
+                        waypoints_.poses.push_back(pose);
 
+                    }
                 }
             }else{
                 return false;
