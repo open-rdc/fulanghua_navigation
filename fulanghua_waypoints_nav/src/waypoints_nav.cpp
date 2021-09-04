@@ -78,8 +78,8 @@ public:
         }
         
         ros::NodeHandle private_nh("~");
-        private_nh.param("robot_frame", robot_frame_, std::string("/base_link"));
-        private_nh.param("world_frame", world_frame_, std::string("/map"));
+        private_nh.param("robot_frame", robot_frame_, std::string("base_link"));
+        private_nh.param("world_frame", world_frame_, std::string("map"));
         private_nh.param("cmd_vel_topic_name", cmd_vel_topic_name_, std::string("mobile_base_controller/cmd_vel"));
         
         double max_update_rate;
